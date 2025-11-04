@@ -1,0 +1,26 @@
+# Core
+python-dateutil==2.8.2
+faker==20.1.0
+
+# Data processing  
+pandas==2.1.4
+numpy==1.24.4
+
+# Database
+sqlalchemy==2.0.25
+
+# Web framework
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.3
+
+# UI
+streamlit==1.28.2
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Utilities
+python-dotenv==1.0.0
+loguru==0.7.2

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  spendsense-app:
+    build:
+      context: .
+      target: development  # Use development stage for faster builds
+    container_name: spendsense-dev
+    ports:
+      - "8000:8000"  # FastAPI
+      - "8501:8501"  # Streamlit
+    volumes:
+      # Hot reload optimization - mount source files
+      - ./src:/app/src:cached
+      - ./tests:/app/tests:cached
+      - ./scripts:/app/scripts:cached
+      - ./data:/app/data:delegated
+      # Persistent database and logs (survive container restarts)
+      - spendsense-db:/app/db
+      - spendsense-logs:/app/logs
+      # Performance: exclude __pycache__ from syncing
+      - /app/src/__pycache__
+      - /app/tests/__pycache__
+    environment:
+      - DATABASE_PATH=/app/db/spend_sense.db
+      - TEST_DATABASE_PATH=/app/db/test_spend_sense.db
+      - LOG_LEVEL=INFO
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    command: tail -f /dev/null  # Keep container running for development
+    # Health check for quick startup validation
+    healthcheck:
+      test: ["CMD", "python", "-c", "import src.features.schema; print('OK')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Quick test runner (no persistent volumes)
+  spendsense-test:
+    build:
+      context: .
+      target: development
+    container_name: spendsense-test
+    volumes:
+      - .:/app:cached
+    environment:
+      - DATABASE_PATH=/tmp/test_spend_sense.db  # Use tmp for test isolation
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+    profiles: ["testing"]
+    command: pytest tests/ -v --cov=src --cov-report=html
+
+  # Separate service for database initialization (one-time setup)
+  spendsense-init:
+    extends: spendsense-app
+    container_name: spendsense-init
+    profiles: ["init"]
+    command: >
+      sh -c "
+        python -c 'from src.db.connection import initialize_db; initialize_db()' &&
+        python -m src.ingest.data_generator --users 50 &&
+        python scripts/load_data.py --validate &&
+        echo '✅ SpendSense initialized successfully!'
+      "
+
+volumes:
+  spendsense-db:
+    driver: local
+  spendsense-logs:
+    driver: local
