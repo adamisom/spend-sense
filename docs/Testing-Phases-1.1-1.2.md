@@ -1,6 +1,7 @@
 # Testing Guide: Phases 1.1-1.3 Foundation
 
 ## 🎯 Purpose
+
 This guide provides step-by-step instructions to validate that Phases 1.1 (Project Foundation), 1.2 (Database Foundation), and 1.3 (Synthetic Data Generation) are complete and working correctly before proceeding to Phase 1.4 (Data Loading).
 
 ---
@@ -8,6 +9,7 @@ This guide provides step-by-step instructions to validate that Phases 1.1 (Proje
 ## 📋 Pre-Test Checklist
 
 Before running tests, ensure:
+
 - [ ] Docker daemon is running (`colima start` or Docker Desktop)
 - [ ] Project is initialized (`make init` if first time)
 - [ ] Development container is running (`make up`)
@@ -21,6 +23,7 @@ Before running tests, ensure:
 **What it tests**: Directory structure, configuration files, Docker setup
 
 **Command**:
+
 ```bash
 # Option A: Run in Docker container (recommended)
 make shell
@@ -32,6 +35,7 @@ python3 scripts/validate_implementation.py
 ```
 
 **Expected Output**:
+
 ```
 🚀 Starting SpendSense Implementation Validation
 ==================================================
@@ -72,6 +76,7 @@ python3 scripts/validate_implementation.py
 **What it tests**: UserSignals model, validation, JSON serialization
 
 **Command**:
+
 ```bash
 make shell
 python -c "
@@ -100,6 +105,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Valid signals created: 0.65
 ✅ Validation issues: 0
@@ -116,6 +122,7 @@ exit
 **What it tests**: Database initialization, transactions, signal storage/retrieval
 
 **Command**:
+
 ```bash
 make shell
 python -c "
@@ -156,6 +163,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Database initialization successful
 ✅ Transaction successful
@@ -173,6 +181,7 @@ exit
 **What it tests**: User profiles, account generation, transaction generation, liability generation, CSV output
 
 **Command**:
+
 ```bash
 make shell
 python -m src.ingest.data_generator --users 5 --output /tmp/test_data
@@ -193,6 +202,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Generated complete dataset:
    👥 5 users
@@ -210,7 +220,8 @@ liabilities.csv
 # CSV should have proper headers and data
 ```
 
-**✅ Pass Criteria**: 
+**✅ Pass Criteria**:
+
 - All 4 CSV files created
 - Users CSV has 5+ rows
 - Accounts CSV has 10+ rows (2+ accounts per user)
@@ -220,9 +231,54 @@ liabilities.csv
 
 ---
 
-### Step 5: Comprehensive Phase 1 Test (All Components)
+### Step 5: Test Data Loading Pipeline (Phase 1.4)
 
-**What it tests**: Complete integration of all Phase 1.1-1.2 components
+**What it tests**: Loading CSV files into database, data integrity validation
+
+**Command**:
+```bash
+make shell
+# First generate test data
+python -m src.ingest.data_generator --users 10 --output /tmp/test_data
+
+# Load data into database
+python scripts/load_data.py --data-dir /tmp/test_data --db-path /tmp/test.db --validate
+
+# Verify database contents
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM users;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM accounts;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM transactions;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM liabilities;"
+
+# Clean up
+rm -rf /tmp/test_data /tmp/test.db
+exit
+```
+
+**Expected Output**:
+```
+✅ Data Loading Summary:
+   users: 10 records
+   accounts: 20+ records
+   transactions: 200+ records
+   liabilities: 5+ records
+
+🔍 Validating data integrity...
+✅ Data integrity validated: 10 users loaded
+✅ All data integrity checks passed
+```
+
+**✅ Pass Criteria**: 
+- All 4 tables loaded successfully
+- Record counts match CSV files
+- Data integrity validation passes
+- No orphaned records or foreign key violations
+
+---
+
+### Step 6: Comprehensive Phase 1 Test (All Components)
+
+**What it tests**: Complete integration of all Phase 1.1-1.4 components
 
 **Command**:
 ```bash
@@ -245,7 +301,7 @@ exit
 ✅ Synthetic data generation validation passed
 
 🎉 All Phase 1 validation tests passed!
-Ready for Phase 1.4: Data Loading Pipeline
+Ready for Phase 2: Signal Detection
 ```
 
 **✅ Pass Criteria**: All 3 tests pass
@@ -278,7 +334,7 @@ exit
 
 ## ✅ Success Criteria Summary
 
-Before moving to Phase 1.4, ensure:
+Before moving to Phase 2, ensure:
 
 1. **Project Structure** ✅
    - All directories exist
@@ -303,7 +359,13 @@ Before moving to Phase 1.4, ensure:
    - Liabilities generate correctly (APR, payments, overdue status)
    - All 4 CSV files output correctly
 
-5. **Integration** ✅
+5. **Data Loading** ✅
+   - CSV files load into database correctly
+   - All 4 tables populated (users, accounts, transactions, liabilities)
+   - Data integrity validation passes
+   - No orphaned records or foreign key violations
+
+6. **Integration** ✅
    - All components work together
    - No import errors
    - No runtime errors
@@ -313,15 +375,19 @@ Before moving to Phase 1.4, ensure:
 ## 🚨 Troubleshooting
 
 ### Issue: "Module not found" errors
+
 **Solution**: Ensure you're running in Docker container (`make shell`) or have activated virtual environment
 
 ### Issue: "Database locked" errors
+
 **Solution**: Close any other database connections, restart container (`make down && make up`)
 
 ### Issue: "CSV files not generated"
+
 **Solution**: Check output directory permissions, ensure `data/synthetic` directory exists
 
 ### Issue: Validation script fails
+
 **Solution**: Check that all files from Phase 1.1-1.2 exist, review error messages for specific missing components
 
 ---
@@ -330,9 +396,8 @@ Before moving to Phase 1.4, ensure:
 
 Once all tests pass:
 
-1. ✅ **Phase 1.1-1.3 Complete** - Foundation and data generation are solid
-2. ➡️ **Proceed to Phase 1.4** - Data loading pipeline (load CSV files into database)
-3. ➡️ **Then Phase 2** - Signal detection and persona assignment
+1. ✅ **Phase 1.1-1.4 Complete** - Foundation, data generation, and data loading are solid
+2. ➡️ **Proceed to Phase 2** - Signal detection and persona assignment
+3. ➡️ **Then Phase 3** - Recommendation engine and API
 
-See `SpendSense-Implementation-Checklist.md` for Phase 1.4 and Phase 2 tasks.
-
+See `SpendSense-Implementation-Checklist.md` for Phase 2 and Phase 3 tasks.
