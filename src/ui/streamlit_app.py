@@ -1,0 +1,281 @@
+"""
+SpendSense Operator Dashboard - Main Entry Point
+Provides comprehensive view of system operations and user analytics
+"""
+import streamlit as st
+import pandas as pd
+from datetime import datetime, timedelta
+from pathlib import Path
+import sys
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
+from src.db.connection import database_transaction
+from src.ui.pages.user_analytics import render_user_analytics
+from loguru import logger
+
+# Configure Streamlit page
+st.set_page_config(
+    page_title="SpendSense Operator Dashboard",
+    page_icon="💰",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Custom CSS for better styling
+st.markdown("""
+<style>
+.metric-card {
+    background-color: #f0f2f6;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.success-metric {
+    background-color: #d4edda;
+    border-left: 4px solid #28a745;
+}
+
+.warning-metric {
+    background-color: #fff3cd;
+    border-left: 4px solid #ffc107;
+}
+
+.error-metric {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+}
+
+.sidebar-info {
+    background-color: #e7f3ff;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+def initialize_session_state():
+    """Initialize Streamlit session state variables."""
+    if 'db_path' not in st.session_state:
+        st.session_state.db_path = "db/spend_sense.db"
+    
+    if 'last_refresh' not in st.session_state:
+        st.session_state.last_refresh = None
+    
+    if 'auto_refresh' not in st.session_state:
+        st.session_state.auto_refresh = False
+
+def get_system_health() -> dict:
+    """Get basic system health metrics."""
+    try:
+        with database_transaction(st.session_state.db_path) as conn:
+            # User counts
+            total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+            users_with_signals = conn.execute("SELECT COUNT(DISTINCT user_id) FROM user_signals").fetchone()[0]
+            users_with_recommendations = conn.execute("""
+                SELECT COUNT(DISTINCT user_id) FROM recommendations 
+                WHERE created_at >= datetime('now', '-7 days')
+            """).fetchone()[0]
+            
+            # Data quality metrics
+            avg_data_quality_result = conn.execute("""
+                SELECT AVG(CAST(JSON_EXTRACT(signals, '$.data_quality_score') AS FLOAT))
+                FROM user_signals 
+                WHERE window = '180d'
+            """).fetchone()[0]
+            avg_data_quality = avg_data_quality_result if avg_data_quality_result is not None else 0.0
+            
+            # Recent activity
+            recent_recommendations = conn.execute("""
+                SELECT COUNT(*) FROM recommendations 
+                WHERE created_at >= datetime('now', '-24 hours')
+            """).fetchone()[0]
+            
+            return {
+                'total_users': total_users,
+                'users_with_signals': users_with_signals,
+                'users_with_recommendations': users_with_recommendations,
+                'signal_coverage': users_with_signals / max(total_users, 1) * 100,
+                'avg_data_quality': avg_data_quality,
+                'recent_recommendations': recent_recommendations,
+                'system_status': 'healthy' if users_with_signals > 0 else 'error'
+            }
+            
+    except Exception as e:
+        logger.error(f"Error getting system health: {e}")
+        return {
+            'total_users': 0,
+            'users_with_signals': 0,
+            'users_with_recommendations': 0,
+            'signal_coverage': 0.0,
+            'avg_data_quality': 0.0,
+            'recent_recommendations': 0,
+            'system_status': 'error'
+        }
+
+def render_sidebar():
+    """Render sidebar with navigation and controls."""
+    st.sidebar.title("🎯 SpendSense Operator")
+    st.sidebar.markdown("---")
+    
+    # Navigation
+    st.sidebar.subheader("📊 Navigation")
+    page = st.sidebar.selectbox(
+        "Select View",
+        ["System Overview", "User Analytics", "Recommendation Engine", 
+         "Data Quality", "Performance Metrics", "System Logs"]
+    )
+    
+    st.sidebar.markdown("---")
+    
+    # Database settings
+    st.sidebar.subheader("⚙️ Settings")
+    new_db_path = st.sidebar.text_input(
+        "Database Path", 
+        value=st.session_state.db_path,
+        help="Path to SQLite database file"
+    )
+    
+    if new_db_path != st.session_state.db_path:
+        st.session_state.db_path = new_db_path
+        st.rerun()
+    
+    # Auto-refresh controls
+    st.session_state.auto_refresh = st.sidebar.checkbox(
+        "Auto-refresh (30s)", 
+        value=st.session_state.auto_refresh
+    )
+    
+    if st.sidebar.button("🔄 Refresh Data"):
+        st.session_state.last_refresh = datetime.now()
+        st.rerun()
+    
+    # System health in sidebar
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🏥 System Health")
+    
+    health = get_system_health()
+    
+    if health['system_status'] == 'healthy':
+        st.sidebar.success("✅ System Healthy")
+    else:
+        st.sidebar.error("❌ System Issues")
+    
+    st.sidebar.markdown(f"""
+    <div class="sidebar-info">
+    <strong>Quick Stats:</strong><br>
+    👥 Users: {health['total_users']}<br>
+    📊 Signal Coverage: {health['signal_coverage']:.1f}%<br>
+    🎯 Avg Data Quality: {health['avg_data_quality']:.2f}<br>
+    📝 Recent Recs: {health['recent_recommendations']}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Last refresh info
+    if st.session_state.last_refresh:
+        st.sidebar.caption(f"Last refresh: {st.session_state.last_refresh.strftime('%H:%M:%S')}")
+    
+    return page
+
+def render_system_overview():
+    """Render system overview page."""
+    st.title("📊 System Overview")
+    st.markdown("High-level system health and key metrics")
+    
+    # Get system metrics
+    health = get_system_health()
+    
+    # Key metrics row
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric(
+            label="Total Users",
+            value=f"{health['total_users']:,}",
+            help="Total number of users in the system"
+        )
+    
+    with col2:
+        st.metric(
+            label="Signal Coverage",
+            value=f"{health['signal_coverage']:.1f}%",
+            delta=None,
+            help="Percentage of users with computed signals"
+        )
+    
+    with col3:
+        st.metric(
+            label="Avg Data Quality",
+            value=f"{health['avg_data_quality']:.2f}",
+            delta=None,
+            help="Average data quality score (0.0-1.0)"
+        )
+    
+    with col4:
+        st.metric(
+            label="24h Recommendations",
+            value=f"{health['recent_recommendations']:,}",
+            help="Recommendations generated in last 24 hours"
+        )
+    
+    st.markdown("---")
+    
+    # System status cards
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🎯 Recommendation Engine")
+        if health['users_with_recommendations'] > 0:
+            st.success(f"✅ Active - serving {health['users_with_recommendations']} users")
+        else:
+            st.error("❌ No recent recommendations generated")
+    
+    with col2:
+        st.subheader("📊 Signal Detection") 
+        if health['users_with_signals'] > 0:
+            st.success(f"✅ Active - {health['users_with_signals']} users processed")
+        else:
+            st.error("❌ No user signals found")
+
+def main():
+    """Main dashboard application."""
+    # Initialize session state
+    initialize_session_state()
+    
+    # Auto-refresh logic
+    if st.session_state.auto_refresh:
+        # This is a simplified approach - in production you'd use st.empty() and time.sleep()
+        st.markdown("🔄 Auto-refresh enabled")
+    
+    # Render sidebar and get selected page
+    selected_page = render_sidebar()
+    
+    # Route to selected page
+    if selected_page == "System Overview":
+        render_system_overview()
+    elif selected_page == "User Analytics":
+        render_user_analytics()
+    elif selected_page == "Recommendation Engine":
+        st.title("🎯 Recommendation Engine")
+        st.info("Recommendation Engine page - To be implemented in next task")
+    elif selected_page == "Data Quality":
+        st.title("📊 Data Quality")
+        st.info("Data Quality page - To be implemented in next task")
+    elif selected_page == "Performance Metrics":
+        st.title("⚡ Performance Metrics")
+        st.info("Performance Metrics page - To be implemented in next task")
+    elif selected_page == "System Logs":
+        st.title("📋 System Logs")
+        st.info("System Logs page - To be implemented in next task")
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("*SpendSense Operator Dashboard v1.0*")
+
+if __name__ == "__main__":
+    main()
+
