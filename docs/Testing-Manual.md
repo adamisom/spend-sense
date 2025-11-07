@@ -1,7 +1,9 @@
-# Manual Testing Guide - Phase 1 Integration Test
+# Manual Testing Guide - SpendSense
 
 ## 🎯 Purpose
-Quick manual integration test to verify the complete Phase 1 pipeline works end-to-end.
+Quick manual integration tests to verify the complete SpendSense pipeline works end-to-end.
+
+## Phase 1: Data Foundation Integration Test
 
 ## 🧪 Full Integration Test
 
@@ -79,4 +81,104 @@ make down
 ```bash
 make down && make up
 ```
+
+---
+
+## Phase 2: Recommendations Integration Test
+
+**What it tests**: Complete recommendation flow from signals → persona → recommendations
+
+**Prerequisites**:
+- Docker daemon running (`colima start`)
+- Container running (`make up`)
+- Phase 1 data loaded (optional, for full integration)
+
+**Command**:
+```bash
+# Ensure container is running
+make up
+
+# Test recommendation generation
+make shell
+python -c "
+from src.features.schema import UserSignals
+from src.recommend.recommendation_engine import RecommendationEngine
+from src.db.connection import initialize_db, save_user_signals
+import json
+
+# Initialize database
+initialize_db()
+
+# Create test user signals
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=5,
+    monthly_subscription_spend=100.0,
+    data_quality_score=0.9
+)
+
+# Save signals to database
+save_user_signals('test_user', '180d', signals.model_dump())
+
+# Generate recommendations
+engine = RecommendationEngine()
+recommendations = engine.generate_recommendations('test_user', signals)
+
+print(f'✅ Generated {len(recommendations)} recommendations')
+for rec in recommendations[:3]:
+    print(f'  - {rec.title}: {rec.rationale}')
+"
+
+# Test persona classification
+python -c "
+from src.features.schema import UserSignals
+from src.personas.persona_classifier import classify_persona
+
+signals = UserSignals(credit_utilization_max=0.75, data_quality_score=0.9)
+match = classify_persona(signals)
+print(f'✅ Persona: {match.persona_name} (confidence: {match.confidence:.2f})')
+"
+
+# Test API endpoint (if API is running)
+# curl http://localhost:8000/recommendations/test_user
+
+exit
+```
+
+**Expected Output**:
+```
+✅ Generated 3-5 recommendations
+  - Understanding Credit Utilization: Based on your financial profile (high utilization), because your credit card utilization is above 50%, your credit utilization is 75%.
+  - 5-Step Debt Paydown Strategy: Based on your financial profile (high utilization), because you're paying interest charges on credit cards.
+  - Subscription Spending Tracker: Based on your financial profile (subscription-heavy), because you have 5 or more active subscriptions.
+
+✅ Persona: High Utilization (confidence: 0.80)
+```
+
+**✅ Pass Criteria**:
+- Recommendations generated successfully
+- Each recommendation has a rationale
+- Persona classification works correctly
+- No errors during generation
+
+---
+
+## Unit Tests
+
+**Run all Phase 2 unit tests**:
+```bash
+make shell
+pytest tests/ -v
+```
+
+**Expected**: 63 tests passing
+
+**Test Coverage**:
+- Persona Classifier: 17 tests (AND/OR logic, priority, fallbacks)
+- Signal Mapper: 11 tests (thresholds, multiple triggers)
+- Guardrails: 9 tests (consent, safety, rate limiting)
+- Recommendation Engine: 11 tests (scoring, filtering, rationales)
+- Content Schema: 10 tests (validation, completeness)
+- Integration: 6 tests (end-to-end flows)
 
