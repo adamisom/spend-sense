@@ -6,16 +6,153 @@ Quick manual integration tests to verify the complete SpendSense pipeline works 
 
 ## Phase 1: Data Foundation Integration Test
 
-## 🧪 Full Integration Test
-
-**What it tests**: Complete pipeline from data generation → CSV → database → query
+**What it tests**: Complete pipeline from setup → validation → data generation → CSV → database → query
 
 **Prerequisites**:
 
 - Docker daemon running (`colima start`)
 - Container running (`make up`)
 
-**Command**:
+### Test 1: Setup & Validate Foundation
+
+```bash
+# Install dependencies (if needed)
+brew install docker colima docker-compose
+xcode-select --install
+
+# Start Docker daemon
+colima start
+
+# Initialize project (first time only)
+cd /Users/adamisom/Desktop/spend-sense
+make init
+
+# Start development container (required before make shell)
+make up
+
+# Validate project structure
+make shell
+python scripts/validate_implementation.py
+exit
+```
+
+**Expected**: All 7 validation tests pass (project structure, schema, database, data generator, content catalog, Docker config, imports)
+
+**✅ Pass Criteria**:
+
+- Project structure validation passes
+- Database schema validation passes
+- Data generator validation passes
+- Content catalog validation passes
+- Docker configuration validation passes
+- All imports work correctly
+
+### Test 2: Test Database Foundation
+
+```bash
+# Ensure container is running
+make up
+
+make shell
+# Test signal schema
+python -c "from src.features.schema import UserSignals, validate_signal_completeness; signals = UserSignals(credit_utilization_max=0.65, subscription_count=3); print('✅ Signal schema works')"
+
+# Test database operations
+python -c "from src.db.connection import initialize_db, database_transaction; initialize_db(); print('✅ Database initialization works')"
+exit
+```
+
+**Expected**: No errors, schema validates, database initializes successfully
+
+**✅ Pass Criteria**:
+
+- Signal schema validates correctly
+- Database initialization works
+- No import or runtime errors
+
+### Test 3: Test Data Generation
+
+```bash
+# Ensure container is running
+make up
+
+make shell
+# Generate test data (all 4 CSV files)
+python -m src.ingest.data_generator --users 10 --output /tmp/test_data
+
+# Verify all files created
+ls -la /tmp/test_data/
+# Expected: users.csv, accounts.csv, transactions.csv, liabilities.csv
+
+# Check data volumes
+wc -l /tmp/test_data/*.csv
+# Expected: users (10+), accounts (20+), transactions (200+), liabilities (5+)
+
+# Clean up
+rm -rf /tmp/test_data
+exit
+```
+
+**Expected**: All 4 CSV files generated with realistic data volumes
+
+**✅ Pass Criteria**:
+
+- All 4 CSV files created (users, accounts, transactions, liabilities)
+- Data volumes are realistic (10+ users, 20+ accounts, 200+ transactions, 5+ liabilities)
+- No errors during generation
+
+### Test 4: Test Data Loading Pipeline
+
+```bash
+# Ensure container is running
+make up
+
+make shell
+# Generate and load test data
+python -m src.ingest.data_generator --users 10 --output /tmp/test_data
+python scripts/load_data.py --data-dir /tmp/test_data --db-path /tmp/test.db --validate
+
+# Verify database contents
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM users;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM accounts;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM transactions;"
+sqlite3 /tmp/test.db "SELECT COUNT(*) FROM liabilities;"
+
+# Clean up
+rm -rf /tmp/test_data /tmp/test.db
+exit
+```
+
+**Expected**: All 4 tables loaded, record counts match CSV files, integrity validation passes
+
+**✅ Pass Criteria**:
+
+- All 4 tables loaded successfully
+- Record counts match CSV file line counts
+- Data integrity validation passes
+- No errors during loading
+
+### Test 5: Run Comprehensive Phase 1 Tests
+
+```bash
+# Ensure container is running
+make up
+
+make shell
+python scripts/test_phase1.py
+exit
+```
+
+**Expected**: All Phase 1 validation tests pass (signal schema, database, data generation)
+
+**✅ Pass Criteria**:
+
+- Signal schema tests pass
+- Database tests pass
+- Data generation tests pass
+- All validation checks succeed
+
+### Test 6: Full Integration Test
 
 ```bash
 # Ensure container is running
