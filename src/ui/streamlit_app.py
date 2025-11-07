@@ -15,6 +15,10 @@ sys.path.append(str(project_root))
 from src.db.connection import database_transaction
 from src.ui.pages.user_analytics import render_user_analytics
 from src.ui.pages.user_view import render_user_view
+from src.ui.pages.recommendation_engine import render_recommendation_engine
+from src.ui.pages.data_quality import render_data_quality
+from src.ui.pages.performance_metrics import render_performance_metrics
+from src.ui.pages.system_logs import render_system_logs
 from loguru import logger
 
 # Configure Streamlit page
@@ -263,17 +267,13 @@ def main():
     elif selected_page == "User Analytics":
         render_user_analytics()
     elif selected_page == "Recommendation Engine":
-        st.title("🎯 Recommendation Engine")
-        st.info("Recommendation Engine page - To be implemented in next task")
+        render_recommendation_engine()
     elif selected_page == "Data Quality":
-        st.title("📊 Data Quality")
-        st.info("Data Quality page - To be implemented in next task")
+        render_data_quality()
     elif selected_page == "Performance Metrics":
-        st.title("⚡ Performance Metrics")
-        st.info("Performance Metrics page - To be implemented in next task")
+        render_performance_metrics()
     elif selected_page == "System Logs":
-        st.title("📋 System Logs")
-        st.info("System Logs page - To be implemented in next task")
+        render_system_logs()
     
     # Footer
     st.markdown("---")

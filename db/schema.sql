@@ -85,9 +85,24 @@ CREATE TABLE recommendations (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- User feedback on recommendations
+CREATE TABLE feedback (
+    feedback_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    rec_id TEXT NOT NULL,
+    content_id TEXT NOT NULL,
+    helpful BOOLEAN NOT NULL,
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (rec_id) REFERENCES recommendations(rec_id)
+);
+
 -- Create indexes for performance
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date);
 CREATE INDEX idx_transactions_merchant ON transactions(merchant_name);
 CREATE INDEX idx_accounts_user_type ON accounts(user_id, type);
 CREATE INDEX idx_recommendations_user_created ON recommendations(user_id, created_at);
+CREATE INDEX idx_feedback_user ON feedback(user_id);
+CREATE INDEX idx_feedback_rec ON feedback(rec_id);
 

@@ -438,6 +438,149 @@ def run_evaluation_cli():
     else:
         print(report)
 
+def calculate_relevance_score(
+    content_item: 'ContentItem',
+    persona_id: str,
+    signal_triggers: List[str]
+) -> float:
+    """Calculate relevance score for content-persona-trigger alignment.
+    
+    Args:
+        content_item: Content item being recommended
+        persona_id: Assigned persona ID
+        signal_triggers: List of signal triggers for user
+    
+    Returns:
+        Relevance score (0.0-1.0)
+    """
+    from src.recommend.content_schema import ContentItem, SignalTrigger
+    
+    score = 0.0
+    
+    # Persona match (40% weight)
+    if persona_id in content_item.personas:
+        score += 0.4
+    
+    # Trigger match (30% weight)
+    content_triggers = [t.value for t in content_item.signal_triggers]
+    matching_triggers = [t for t in signal_triggers if t in content_triggers]
+    if content_triggers:
+        trigger_match_ratio = len(matching_triggers) / len(content_triggers)
+        score += 0.3 * trigger_match_ratio
+    
+    # Content priority (20% weight)
+    # Higher priority = more relevant
+    priority_score = min(content_item.priority_score / 10.0, 1.0)
+    score += 0.2 * priority_score
+    
+    # Content type appropriateness (10% weight)
+    # Articles for education, checklists for action, calculators for tools
+    type_scores = {
+        'article': 1.0,
+        'checklist': 0.9,
+        'calculator': 0.8,
+        'partner_offer': 0.7
+    }
+    type_score = type_scores.get(content_item.type.value if hasattr(content_item.type, 'value') else str(content_item.type), 0.5)
+    score += 0.1 * type_score
+    
+    return min(score, 1.0)
+
+def calculate_aggregate_relevance() -> dict:
+    """Calculate aggregate relevance metrics across all recommendations.
+    
+    Returns:
+        Dictionary with relevance metrics
+    """
+    try:
+        from src.recommend.content_schema import load_content_catalog
+        from src.features.schema import UserSignals
+        from src.personas.persona_classifier import classify_persona
+        from src.recommend.signal_mapper import map_signals_to_triggers
+        import json
+        
+        catalog = load_content_catalog("data/content/catalog.json")
+        
+        with database_transaction() as conn:
+            # Get all recommendations with user signals
+            results = conn.execute("""
+                SELECT 
+                    r.rec_id,
+                    r.user_id,
+                    r.content_id,
+                    us.signals,
+                    pa.persona
+                FROM recommendations r
+                JOIN user_signals us ON r.user_id = us.user_id AND us.window = '180d'
+                LEFT JOIN persona_assignments pa ON r.user_id = pa.user_id AND pa.window = '180d'
+            """).fetchall()
+            
+            if not results:
+                return {
+                    'avg_relevance': 0.0,
+                    'high_relevance_count': 0,
+                    'low_relevance_count': 0,
+                    'total_recommendations': 0
+                }
+            
+            relevance_scores = []
+            high_relevance = 0  # >= 0.7
+            low_relevance = 0   # < 0.5
+            
+            for row in results:
+                # Parse signals
+                signals_dict = json.loads(row['signals'])
+                signals = UserSignals(**signals_dict)
+                
+                # Get persona
+                persona_match = classify_persona(signals)
+                persona_id = persona_match.persona_id if persona_match else (row['persona'] if row['persona'] else None)
+                
+                # Get triggers
+                triggers = [t.value for t in map_signals_to_triggers(signals)]
+                
+                # Get content item
+                content_item = next(
+                    (item for item in catalog.items if item.content_id == row['content_id']),
+                    None
+                )
+                
+                if content_item and persona_id:
+                    relevance = calculate_relevance_score(
+                        content_item,
+                        persona_id,
+                        triggers
+                    )
+                    relevance_scores.append(relevance)
+                    
+                    if relevance >= 0.7:
+                        high_relevance += 1
+                    elif relevance < 0.5:
+                        low_relevance += 1
+            
+            avg_relevance = sum(relevance_scores) / len(relevance_scores) if relevance_scores else 0.0
+            
+            return {
+                'avg_relevance': avg_relevance,
+                'high_relevance_count': high_relevance,
+                'low_relevance_count': low_relevance,
+                'total_recommendations': len(results),
+                'relevance_distribution': {
+                    'high (>=0.7)': high_relevance,
+                    'medium (0.5-0.7)': len(relevance_scores) - high_relevance - low_relevance,
+                    'low (<0.5)': low_relevance
+                }
+            }
+            
+    except Exception as e:
+        logger.error(f"Error calculating relevance: {e}")
+        return {
+            'avg_relevance': 0.0,
+            'high_relevance_count': 0,
+            'low_relevance_count': 0,
+            'total_recommendations': 0
+        }
+
 if __name__ == "__main__":
     run_evaluation_cli()
 
