@@ -126,11 +126,22 @@ def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_s
 def save_user_signals(user_id: str, window: str, signals: Dict[str, Any], db_path: str = "db/spend_sense.db"):
     """Save computed signals to database."""
     try:
+        # Handle datetime serialization
+        def json_serializer(obj):
+            """JSON serializer for objects not serializable by default json code"""
+            from datetime import datetime
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            raise TypeError(f"Type {type(obj)} not serializable")
+        
+        # Serialize signals with datetime handling
+        signals_json = json.dumps(signals, default=json_serializer)
+        
         with database_transaction(db_path) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO user_signals (user_id, window, signals)
                 VALUES (?, ?, ?)
-            """, (user_id, window, json.dumps(signals)))
+            """, (user_id, window, signals_json))
         
         logger.debug(f"Saved signals for user {user_id}, window {window}")
         

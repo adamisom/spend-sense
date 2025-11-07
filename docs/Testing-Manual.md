@@ -1,6 +1,7 @@
 # Manual Testing Guide - SpendSense
 
 ## 🎯 Purpose
+
 Quick manual integration tests to verify the complete SpendSense pipeline works end-to-end.
 
 ## Phase 1: Data Foundation Integration Test
@@ -10,10 +11,12 @@ Quick manual integration tests to verify the complete SpendSense pipeline works 
 **What it tests**: Complete pipeline from data generation → CSV → database → query
 
 **Prerequisites**:
+
 - Docker daemon running (`colima start`)
 - Container running (`make up`)
 
 **Command**:
+
 ```bash
 # Ensure container is running
 make up
@@ -28,6 +31,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Generated complete dataset:
    👥 5 users
@@ -50,7 +54,8 @@ Users: 5
 ✅ Full pipeline works
 ```
 
-**✅ Pass Criteria**: 
+**✅ Pass Criteria**:
+
 - All 4 CSV files generated
 - All 4 tables loaded successfully
 - Data integrity validation passes
@@ -62,22 +67,26 @@ Users: 5
 ## 📋 Quick Reference
 
 **Start container**:
+
 ```bash
 make up
 ```
 
 **Access shell**:
+
 ```bash
 make shell
 # To exit: type 'exit' or press Ctrl+D
 ```
 
 **Stop container**:
+
 ```bash
 make down
 ```
 
 **Restart after config changes**:
+
 ```bash
 make down && make up
 ```
@@ -89,6 +98,7 @@ make down && make up
 **What it tests**: Complete recommendation flow from signals → persona → recommendations
 
 **Prerequisites**:
+
 - Docker daemon running (`colima start`)
 - Container running (`make up`)
 
@@ -165,10 +175,18 @@ make shell
 cat > /tmp/test_recommendations.py << 'EOF'
 from src.features.schema import UserSignals
 from src.recommend.recommendation_engine import RecommendationEngine
-from src.db.connection import initialize_db, save_user_signals
+from src.db.connection import initialize_db, save_user_signals, database_transaction
+from datetime import datetime
 
 # Initialize database
 initialize_db()
+
+# Create test user with consent (required for API endpoints)
+with database_transaction() as conn:
+    conn.execute("""
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    """, ('test_user', True, datetime.now().isoformat()))
 
 # Create test user signals
 signals = UserSignals(
@@ -179,7 +197,7 @@ signals = UserSignals(
     data_quality_score=0.9
 )
 
-# Save signals to database
+# Save signals to database (datetime serialization handled automatically)
 save_user_signals('test_user', '180d', signals.model_dump())
 
 # Generate recommendations
@@ -202,6 +220,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Generated 3-5 recommendations
 
@@ -219,18 +238,45 @@ exit
 ### Test 4: API Endpoints
 
 ```bash
+# First, create test user with consent and signals (required for recommendations endpoint)
+python -c "
+from src.db.connection import initialize_db, database_transaction, save_user_signals
+from src.features.schema import UserSignals
+from datetime import datetime
+
+initialize_db()
+
+# Create user with consent
+with database_transaction() as conn:
+    conn.execute('''
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    ''', ('test_user', True, datetime.now().isoformat()))
+
+# Create and save signals
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=5,
+    monthly_subscription_spend=100.0,
+    data_quality_score=0.9
+)
+save_user_signals('test_user', '180d', signals.model_dump())
+print('✅ User created with consent and signals')
+"
+
 # Start API server (in container)
 make shell
 uvicorn src.api.routes:app --host 0.0.0.0 --port 8000 &
 sleep 2
 
-# In another terminal (on host), test API
+# In another terminal (on host)
+# Test API endpoints
 curl http://localhost:8000/health
-curl http://localhost:8000/profile/test_user
+curl http://localhost:8000/profile/test_user | jq
 curl http://localhost:8000/recommendations/test_user | jq
 
-# Or test from within container
-curl http://localhost:8000/recommendations/test_user
+# Stop API server with Ctrl-C 
 ```
 
 **Expected**: API returns JSON with recommendations and rationales
@@ -269,6 +315,7 @@ exit
 **Expected**: Guardrails block unsafe content
 
 **✅ Pass Criteria**:
+
 - Persona classification works correctly
 - Signal mapping produces correct triggers
 - Recommendations generated with rationales
@@ -281,6 +328,7 @@ exit
 ## Unit Tests
 
 **Run all Phase 2 unit tests**:
+
 ```bash
 make shell
 pytest tests/ -v
@@ -289,10 +337,10 @@ pytest tests/ -v
 **Expected**: 63 tests passing
 
 **Test Coverage**:
+
 - Persona Classifier: 17 tests (AND/OR logic, priority, fallbacks)
 - Signal Mapper: 11 tests (thresholds, multiple triggers)
 - Guardrails: 9 tests (consent, safety, rate limiting)
 - Recommendation Engine: 11 tests (scoring, filtering, rationales)
 - Content Schema: 10 tests (validation, completeness)
 - Integration: 6 tests (end-to-end flows)
-

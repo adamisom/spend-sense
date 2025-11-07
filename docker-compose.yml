@@ -15,6 +15,7 @@ services:
       - ./scripts:/app/scripts:cached
       - ./data:/app/data:delegated
       - ./db:/app/db:cached  # Mount db directory for schema.sql and database files
+      - ./config:/app/config:cached  # Mount config directory for persona configuration
       # Mount root files for validation scripts
       - ./README.md:/app/README.md:ro
       - ./Dockerfile:/app/Dockerfile:ro
@@ -70,6 +71,7 @@ services:
       - ./scripts:/app/scripts:cached
       - ./data:/app/data:delegated
       - ./db:/app/db:cached  # Mount db directory to access schema.sql
+      - ./config:/app/config:cached  # Mount config directory for persona configuration
       - spendsense-logs:/app/logs
     command: >
       sh -c "
