@@ -154,7 +154,7 @@ exit
 
 ## 📋 Testing Guide Reference
 
-- **Comprehensive testing**: `docs/Testing-Phase1.md` - Step-by-step validation guide
+- **Manual integration test**: `docs/Testing-Manual.md` - Quick end-to-end pipeline test
 - **Implementation details**: `docs/Implementation-Checklist.md` - Phase 1 tasks (1.1-1.4)
 - **Architecture**: `SpendSense-Architecture-Guide.md`
 - **Next phase**: `docs/Implementation-Phase2.md` - Personas & Recommendations
