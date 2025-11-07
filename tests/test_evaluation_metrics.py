@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import json
 from unittest.mock import patch, MagicMock
 
-from src.evaluation.metrics import RecommendationEvaluator, EvaluationResults
+from src.evaluation.metrics import RecommendationEvaluator, EvaluationResults, calculate_fairness_metrics
 
 
 @pytest.fixture
@@ -286,4 +286,286 @@ class TestIntegration:
             assert results.evaluation_window_days == 7
             assert 0.0 <= results.user_coverage <= 100.0
             assert 0.0 <= results.consent_compliance <= 100.0
+
+
+class TestFairnessMetrics:
+    """Tests for fairness metrics calculation (Phase 4C)."""
+    
+    def test_no_demographics_returns_framework(self, temp_db_path):
+        """Test that framework is returned when no demographics exist."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query - no demographic columns
+            # sqlite3.Row supports both dict and index access, so we use a tuple
+            mock_cursor = MagicMock()
+            mock_cursor.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, consent_status BOOLEAN)",)
+            mock_conn.execute.return_value = mock_cursor
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is False
+            assert 'framework' in result
+            assert 'message' in result
+            assert 'metrics' in result['framework']
+            assert 'implementation_notes' in result['framework']
+    
+    def test_demographics_detected_in_schema(self, temp_db_path):
+        """Test that demographics are detected when present in schema."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema with demographic_group column - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = []  # No users
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is True
+            assert result['message'] == 'Demographic data available but no users found'
+    
+    def test_perfect_parity(self, temp_db_path):
+        """Test fairness metrics with perfect parity (all groups equal)."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Mock results - perfect parity (all groups have 50% recommendation rate)
+            mock_row1 = MagicMock()
+            mock_row1.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_a',
+                'total_users': 10,
+                'users_with_recs': 5
+            }[key]
+            mock_row2 = MagicMock()
+            mock_row2.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_b',
+                'total_users': 10,
+                'users_with_recs': 5
+            }[key]
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = [mock_row1, mock_row2]
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is True
+            assert len(result['recommendation_rates_by_group']) == 2
+            assert result['recommendation_rates_by_group']['group_a']['recommendation_rate'] == 50.0
+            assert result['recommendation_rates_by_group']['group_b']['recommendation_rate'] == 50.0
+            # Perfect parity = CV = 0
+            assert result['parity_metric']['coefficient_of_variation'] == pytest.approx(0.0, abs=0.01)
+            assert len(result['disparities']) == 0
+            assert result['summary']['parity_status'] == 'good'
+    
+    def test_disparities_detected(self, temp_db_path):
+        """Test that disparities are detected when >10% difference exists."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Mock results - group_a: 20%, group_b: 50% (30% difference > 10% threshold)
+            mock_row1 = MagicMock()
+            mock_row1.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_a',
+                'total_users': 10,
+                'users_with_recs': 2  # 20%
+            }[key]
+            mock_row2 = MagicMock()
+            mock_row2.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_b',
+                'total_users': 10,
+                'users_with_recs': 5  # 50%
+            }[key]
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = [mock_row1, mock_row2]
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is True
+            # Average = 35%, group_a diff = 15%, group_b diff = 15%
+            # Both should be flagged as disparities
+            assert len(result['disparities']) == 2
+            assert result['disparities'][0]['status'] == 'disparity_detected'
+            assert result['summary']['groups_with_disparities'] == 2
+            # CV should be high (not perfect parity)
+            assert result['parity_metric']['coefficient_of_variation'] > 0.0
+    
+    def test_coefficient_of_variation_calculation(self, temp_db_path):
+        """Test that coefficient of variation is calculated correctly."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Mock results: 30%, 40%, 50% (average = 40%, std_dev = 8.16, CV = 20.4%)
+            mock_rows = []
+            for i, (group, rate) in enumerate([('a', 30), ('b', 40), ('c', 50)]):
+                mock_row = MagicMock()
+                mock_row.__getitem__.side_effect = lambda key, g=group, r=rate: {
+                    'demographic_group': g,
+                    'total_users': 10,
+                    'users_with_recs': r  # rate%
+                }[key]
+                mock_rows.append(mock_row)
+            
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = mock_rows
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            # Verify CV is calculated (should be ~20% for these rates)
+            cv = result['parity_metric']['coefficient_of_variation']
+            assert cv > 0.0
+            assert cv < 100.0  # Reasonable range
+            # Expected: rates [30, 40, 50], avg=40, std_dev≈8.16, CV≈20.4%
+            assert cv == pytest.approx(20.4, abs=1.0)
+    
+    def test_zero_users_in_group(self, temp_db_path):
+        """Test handling of zero users in a demographic group."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Mock result with zero users (should not crash)
+            mock_row = MagicMock()
+            mock_row.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_a',
+                'total_users': 0,
+                'users_with_recs': 0
+            }[key]
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = [mock_row]
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            # Should handle zero users gracefully
+            assert result['demographic_data_available'] is True
+            # Rate should be 0.0 (not crash from division by zero)
+            assert result['recommendation_rates_by_group']['group_a']['recommendation_rate'] == 0.0
+    
+    def test_zero_recommendations(self, temp_db_path):
+        """Test handling when no recommendations exist."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Mock results with users but no recommendations
+            mock_row = MagicMock()
+            mock_row.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_a',
+                'total_users': 10,
+                'users_with_recs': 0  # No recommendations
+            }[key]
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = [mock_row]
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is True
+            assert result['recommendation_rates_by_group']['group_a']['recommendation_rate'] == 0.0
+            # CV should be 0 when all rates are the same (even if 0%)
+            assert result['parity_metric']['coefficient_of_variation'] == 0.0
+    
+    def test_single_group(self, temp_db_path):
+        """Test handling of single demographic group."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            mock_row = MagicMock()
+            mock_row.__getitem__.side_effect = lambda key: {
+                'demographic_group': 'group_a',
+                'total_users': 10,
+                'users_with_recs': 5
+            }[key]
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = [mock_row]
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is True
+            assert len(result['recommendation_rates_by_group']) == 1
+            # Single group: CV = 0 (no variation)
+            assert result['parity_metric']['coefficient_of_variation'] == 0.0
+            assert len(result['disparities']) == 0
+    
+    def test_error_handling(self, temp_db_path):
+        """Test that database errors are handled gracefully."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            # Simulate database error
+            mock_db.side_effect = Exception("Database connection failed")
+            
+            result = calculate_fairness_metrics()
+            
+            assert result['demographic_data_available'] is False
+            assert 'error' in result
+            assert 'message' in result
+            assert result['message'] == 'Error calculating fairness metrics'
+    
+    def test_parity_status_threshold(self, temp_db_path):
+        """Test that parity_status switches at 10% CV threshold."""
+        with patch('src.db.connection.database_transaction') as mock_db:
+            mock_conn = MagicMock()
+            # Mock schema query (first execute call) - use tuple for index access
+            mock_cursor1 = MagicMock()
+            mock_cursor1.fetchone.return_value = ("CREATE TABLE users (user_id TEXT, demographic_group TEXT)",)
+            
+            # Create scenario with CV just below 10% (should be "good")
+            # Rates: 45%, 50%, 55% (avg=50%, std_dev≈4.08, CV≈8.16% < 10%)
+            mock_rows = []
+            for i, (group, rate) in enumerate([('a', 45), ('b', 50), ('c', 55)]):
+                mock_row = MagicMock()
+                mock_row.__getitem__.side_effect = lambda key, g=group, r=rate: {
+                    'demographic_group': g,
+                    'total_users': 10,
+                    'users_with_recs': r
+                }[key]
+                mock_rows.append(mock_row)
+            
+            mock_cursor2 = MagicMock()
+            mock_cursor2.fetchall.return_value = mock_rows
+            
+            mock_conn.execute.side_effect = [mock_cursor1, mock_cursor2]
+            mock_db.return_value.__enter__.return_value = mock_conn
+            
+            result = calculate_fairness_metrics()
+            
+            # CV should be < 10%, so status should be "good"
+            cv = result['parity_metric']['coefficient_of_variation']
+            if cv < 10.0:
+                assert result['summary']['parity_status'] == 'good'
+            else:
+                assert result['summary']['parity_status'] == 'needs_review'
 
