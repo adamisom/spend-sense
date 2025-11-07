@@ -4,6 +4,101 @@
 
 Quick manual integration tests to verify the complete SpendSense pipeline works end-to-end.
 
+---
+
+## ⚡ Quick Smoke Test (5 minutes)
+
+**What it tests**: Core system functionality in under 5 minutes  
+**When to use**: After setup, before detailed testing, or when verifying a quick fix
+
+**Prerequisites**:
+
+- Docker daemon running (`colima start`)
+- Container running (`make up`)
+
+### Quick Test Steps
+
+```bash
+# 1. Start container
+make up
+
+# 2. Generate minimal test data
+make shell
+python -m src.ingest.data_generator --users 5 --output /tmp/smoke_test
+python scripts/load_data.py --data-dir /tmp/smoke_test --db-path db/spend_sense.db
+
+# 3. Create test user with signals and recommendations
+python -c "
+from src.db.connection import initialize_db, database_transaction, save_user_signals
+from src.features.schema import UserSignals
+from src.recommend.recommendation_engine import RecommendationEngine, save_recommendations
+from datetime import datetime
+
+initialize_db()
+
+# Create user with consent
+user_id = 'smoke_test_user'
+with database_transaction() as conn:
+    conn.execute('''
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    ''', (user_id, True, datetime.now().isoformat()))
+
+# Create signals
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=3,
+    data_quality_score=0.9,
+    insufficient_data=False
+)
+save_user_signals(user_id, '180d', signals.model_dump())
+
+# Generate recommendations
+engine = RecommendationEngine()
+recs = engine.generate_recommendations(user_id, signals)
+save_recommendations(user_id, recs)
+
+print(f'✅ Smoke test data created: {len(recs)} recommendations')
+"
+
+# 4. Quick API test
+uvicorn src.api.routes:app --host 0.0.0.0 --port 8000 &
+sleep 3
+curl -s http://localhost:8000/health | grep -q "healthy" && echo "✅ API health check passed" || echo "❌ API health check failed"
+curl -s http://localhost:8000/profile/smoke_test_user | grep -q "persona" && echo "✅ Profile endpoint works" || echo "❌ Profile endpoint failed"
+pkill -f uvicorn
+
+# 5. Quick dashboard test
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
+sleep 5
+curl -s http://localhost:8501 | grep -q "SpendSense" && echo "✅ Dashboard loads" || echo "❌ Dashboard failed"
+pkill -f streamlit
+
+# 6. Quick test suite
+pytest tests/test_features.py tests/test_personas.py -v --tb=short | tail -5
+
+# Cleanup
+rm -rf /tmp/smoke_test
+exit
+```
+
+**✅ Pass Criteria** (all must pass):
+
+- ✅ Data generation completes without errors
+- ✅ Data loads into database successfully
+- ✅ Recommendations generated (at least 1)
+- ✅ API health endpoint returns "healthy"
+- ✅ API profile endpoint returns valid JSON with persona
+- ✅ Dashboard starts and loads homepage
+- ✅ Core unit tests pass (features, personas)
+
+**⏱️ Expected Time**: 3-5 minutes
+
+**🚨 If smoke test fails**: Stop and fix issues before proceeding to detailed phase tests.
+
+---
+
 ## Phase 1: Data Foundation Integration Test
 
 **What it tests**: Complete pipeline from setup → validation → data generation → CSV → database → query
@@ -811,3 +906,339 @@ pytest tests/ -v -k "test_evaluation or test_dashboard"
 - Evaluation Metrics: Coverage, quality, performance, business, guardrails metrics
 - Dashboard Components: System health, user analytics, data visualization
 - Report Generation: Evaluation report formatting and CLI interface
+
+---
+
+## Phase 4: End-User Interface & Enhanced Features
+
+**What it tests**: End-user interface, 5th persona, fairness metrics, and Phase 4 enhancements
+
+**Prerequisites**:
+
+- Docker daemon running (`colima start`)
+- Container running (`make up`)
+- Phase 1, 2, and 3 data loaded (users, signals, recommendations)
+
+### Test 1: End-User Interface (User View Page)
+
+```bash
+make shell
+
+# Create test user with recommendations
+python -c "
+from src.db.connection import initialize_db, database_transaction, save_user_signals
+from src.features.schema import UserSignals
+from src.recommend.recommendation_engine import RecommendationEngine, save_recommendations
+from datetime import datetime
+
+initialize_db()
+
+user_id = 'phase4_test_user'
+with database_transaction() as conn:
+    conn.execute('''
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    ''', (user_id, True, datetime.now().isoformat()))
+
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=3,
+    monthly_subscription_spend=50.0,
+    data_quality_score=0.9,
+    insufficient_data=False
+)
+save_user_signals(user_id, '180d', signals.model_dump())
+
+engine = RecommendationEngine()
+recs = engine.generate_recommendations(user_id, signals)
+save_recommendations(user_id, recs)
+
+print(f'✅ Test user created with {len(recs)} recommendations')
+"
+
+# Start dashboard
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
+sleep 5
+
+# Manual verification:
+# 1. Open http://localhost:8501 in browser
+# 2. Navigate to "User View" in sidebar
+# 3. Enter user ID: phase4_test_user
+# 4. Click "🔍 Load My Profile"
+# 5. Verify User View page displays:
+#    - Persona card with icon and description
+#    - Matched criteria list
+#    - Recommendations section with cards
+#    - Each recommendation card shows:
+#      - Title and description
+#      - "Why this matters" rationale
+#      - Reading time and type
+#      - "Learn More" button
+# 6. Verify recommendations are personalized and include rationales
+
+pkill -f streamlit
+```
+
+**Expected**: User View page displays personalized persona and recommendations with clear rationales
+
+**✅ Pass Criteria**:
+
+- User View page accessible from sidebar
+- User ID input and load button work
+- Persona card displays correctly with icon and description
+- Recommendations display in user-friendly cards
+- Rationales are clear and personalized
+- No errors during page load
+
+### Test 2: 5th Persona (Fee Fighter)
+
+```bash
+make shell
+
+# Test Fee Fighter persona classification
+python -c "
+from src.features.schema import UserSignals
+from src.personas.persona_classifier import classify_persona
+
+# Test Fee Fighter persona (high fees, low utilization)
+signals = UserSignals(
+    credit_utilization_max=0.15,  # Low utilization
+    monthly_fees_total=25.0,      # High fees
+    has_interest_charges=False,
+    subscription_count=1,
+    data_quality_score=0.9,
+    insufficient_data=False
+)
+
+match = classify_persona(signals)
+print(f'✅ Persona: {match.persona_name}')
+print(f'   Confidence: {match.confidence:.2f}')
+print(f'   Matched criteria: {match.matched_criteria}')
+
+# Verify it's Fee Fighter (not insufficient_data)
+assert match.persona_id == 'fee_fighter', f'Expected fee_fighter, got {match.persona_id}'
+print('✅ Fee Fighter persona correctly classified')
+"
+
+exit
+```
+
+**Expected**: Fee Fighter persona correctly classified for users with high fees and low utilization
+
+**✅ Pass Criteria**:
+
+- Fee Fighter persona exists in persona config
+- Classification works for high-fee, low-utilization users
+- Persona has meaningful description and criteria
+- Not confused with "insufficient_data" fallback
+
+### Test 3: Fairness Metrics in Dashboard
+
+```bash
+make shell
+
+# Start dashboard
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
+sleep 5
+
+# Manual verification:
+# 1. Open http://localhost:8501 in browser
+# 2. Navigate to "Performance Metrics" page
+# 3. Scroll to "⚖️ Fairness Metrics" section
+# 4. Verify fairness metrics display:
+#    - If no demographic data: Shows framework message with implementation notes
+#    - If demographic data exists: Shows:
+#      - Parity metric (coefficient of variation)
+#      - Recommendation rates by demographic group
+#      - Disparities detected (if any)
+#      - Parity status (good/needs_review)
+# 5. Verify metrics are calculated correctly
+
+pkill -f streamlit
+```
+
+**Expected**: Fairness metrics section displays in Performance Metrics page
+
+**✅ Pass Criteria**:
+
+- Fairness Metrics section visible in Performance Metrics page
+- Framework message displays when no demographic data available
+- Parity metrics calculate correctly when demographic data exists
+- Disparities are flagged appropriately (>10% difference)
+- No errors during metrics calculation
+
+### Test 4: Relevance Metrics (if implemented)
+
+```bash
+make shell
+
+# Test relevance metrics calculation
+python -c "
+from src.evaluation.metrics import calculate_relevance_metrics
+
+# This may not be implemented yet - check if it exists
+try:
+    metrics = calculate_relevance_metrics()
+    print('✅ Relevance metrics calculated:')
+    print(f'   Average relevance: {metrics.get(\"avg_relevance\", \"N/A\")}')
+    print(f'   Content-persona fit: {metrics.get(\"content_persona_fit\", \"N/A\")}')
+except AttributeError:
+    print('ℹ️  Relevance metrics not yet implemented (Phase 4B feature)')
+"
+
+exit
+```
+
+**Expected**: Relevance metrics calculate content-persona fit scores (if implemented in Phase 4B)
+
+**✅ Pass Criteria** (if implemented):
+
+- Relevance metrics function exists
+- Calculates average relevance score
+- Calculates content-persona fit
+- Metrics displayed in dashboard
+
+### Test 5: Additional API Endpoints (Phase 4B)
+
+```bash
+make shell
+
+# Start API server
+uvicorn src.api.routes:app --host 0.0.0.0 --port 8000 &
+sleep 3
+
+# Test POST /users endpoint
+curl -X POST http://localhost:8000/users \
+  -H "Content-Type: application/json" \
+  -d '{"consent_status": true}' | jq
+
+# Test POST /consent endpoint
+curl -X POST http://localhost:8000/consent \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "test_user_4b", "consented": true}' | jq
+
+# Test GET /recommendations/{rec_id}/view endpoint
+# First get a recommendation ID
+REC_ID=$(curl -s http://localhost:8000/recommendations/phase4_test_user | jq -r '.recommendations[0].rec_id // empty')
+if [ -n "$REC_ID" ]; then
+    curl -X POST http://localhost:8000/recommendations/$REC_ID/view | jq
+    echo "✅ View endpoint works"
+else
+    echo "ℹ️  No recommendations found to test view endpoint"
+fi
+
+# Test POST /recommendations/{rec_id}/approve endpoint (if implemented)
+if [ -n "$REC_ID" ]; then
+    curl -X POST http://localhost:8000/recommendations/$REC_ID/approve \
+      -H "Content-Type: application/json" \
+      -d '{"approved": true, "reason": "Test approval"}' | jq || echo "ℹ️  Approve endpoint may not be implemented"
+fi
+
+pkill -f uvicorn
+```
+
+**Expected**: Additional API endpoints work correctly
+
+**✅ Pass Criteria**:
+
+- POST /users creates new users
+- POST /consent updates consent status
+- POST /recommendations/{rec_id}/view marks recommendations as viewed
+- POST /recommendations/{rec_id}/approve approves recommendations (if implemented)
+- All endpoints return valid JSON responses
+
+### Test 6: End-to-End Phase 4 Flow
+
+```bash
+make shell
+
+# Complete flow: Create user → Generate signals → Classify persona → Generate recommendations → View in User View
+python -c "
+from src.db.connection import initialize_db, database_transaction, save_user_signals
+from src.features.schema import UserSignals
+from src.personas.persona_classifier import classify_persona
+from src.recommend.recommendation_engine import RecommendationEngine, save_recommendations
+from datetime import datetime
+
+initialize_db()
+
+# Create user
+user_id = 'e2e_phase4_user'
+with database_transaction() as conn:
+    conn.execute('''
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    ''', (user_id, True, datetime.now().isoformat()))
+
+# Create signals
+signals = UserSignals(
+    credit_utilization_max=0.65,
+    has_interest_charges=True,
+    subscription_count=4,
+    monthly_subscription_spend=75.0,
+    monthly_fees_total=15.0,
+    data_quality_score=0.85,
+    insufficient_data=False
+)
+save_user_signals(user_id, '180d', signals.model_dump())
+
+# Classify persona
+persona = classify_persona(signals)
+print(f'✅ Persona classified: {persona.persona_name}')
+
+# Generate recommendations
+engine = RecommendationEngine()
+recs = engine.generate_recommendations(user_id, signals)
+save_recommendations(user_id, recs)
+
+print(f'✅ Generated {len(recs)} recommendations')
+print(f'✅ End-to-end Phase 4 flow complete')
+print(f'   User: {user_id}')
+print(f'   Persona: {persona.persona_name}')
+print(f'   Recommendations: {len(recs)}')
+"
+
+exit
+```
+
+**Expected**: Complete Phase 4 flow works end-to-end
+
+**✅ Pass Criteria**:
+
+- User creation works
+- Signal generation works
+- Persona classification works (including Fee Fighter if applicable)
+- Recommendation generation works
+- All data saved to database correctly
+- No errors throughout flow
+
+**✅ Pass Criteria** (Phase 4 Summary):
+
+- End-user interface (User View) displays correctly
+- 5th persona (Fee Fighter) classifies correctly
+- Fairness metrics display in dashboard
+- Additional API endpoints work (if implemented)
+- End-to-end Phase 4 flow completes successfully
+- No errors throughout testing
+
+---
+
+## Unit Tests
+
+**Run all Phase 4 unit tests**:
+
+```bash
+make shell
+pytest tests/ -v -k "phase4 or fairness or user_view or fee_fighter"
+```
+
+**Expected**: All Phase 4 tests passing
+
+**Test Coverage** (Phase 4):
+
+- End-User Interface: User View page rendering, recommendation display
+- 5th Persona: Fee Fighter classification, criteria matching
+- Fairness Metrics: Demographic parity calculation, disparity detection
+- API Endpoints: User creation, consent management, recommendation actions
+- Relevance Metrics: Content-persona fit scoring (if implemented)
