@@ -1,12 +1,16 @@
 # SpendSense - System Architecture Guide
 
+**Last Updated**: November 2025  
+**Version**: 2.0 (Phase 4 Complete)
+
 ## 🎯 Purpose & Scope
 
 This document provides the **technical architecture blueprint** for SpendSense, focusing on system design patterns, operational concerns, and architectural decisions not covered in the PRD or implementation guides.
 
 **Companion Documents**:
-- [PRD](claude-PRD-SpendSense.md) - Business requirements and high-level architecture
-- [Implementation Guides](SpendSense-Implementation-Checklist.md) - Task-by-task development roadmap
+- [PRD](misc/Reconstructed-PRD.md) - Business requirements and high-level architecture
+- [Implementation Guides](misc/Implementation-Phase*.md) - Phase-by-phase implementation checklists
+- [Operator Dashboard Guide](OPERATOR_DASHBOARD_GUIDE.md) - Complete dashboard usage guide
 
 ## 📐 Architecture Principles
 
@@ -141,6 +145,27 @@ recommendations (N) ←→ (1) content_catalog
 
 ### 2. API Architecture Patterns
 
+#### API Endpoint Architecture (Phase 4 Complete)
+The SpendSense API provides 10+ endpoints organized by functionality:
+
+**Core Endpoints**:
+- `GET /` - API information and version
+- `GET /health` - System health check
+- `GET /profile/{user_id}` - User profile with persona and signals
+- `GET /recommendations/{user_id}` - Personalized recommendations
+
+**User Management Endpoints**:
+- `POST /users` - Create new user (Phase 4B)
+- `POST /consent` - Update user consent status (Phase 4B)
+
+**Recommendation Actions**:
+- `POST /recommendations/{rec_id}/approve` - Approve/reject recommendation (Phase 4B)
+- `GET /recommendations/{rec_id}/view` - Mark recommendation as viewed (Phase 4B)
+- `POST /feedback` - Record user feedback on recommendations
+
+**Operator Endpoints**:
+- `GET /operator/review` - Get recommendations pending review
+
 #### Standardized Response Format
 ```json
 {
@@ -164,9 +189,9 @@ Client → API Gateway → JWT Validation → Role-Based Access → Resource Acc
 ```
 
 **Security Patterns**:
-- **Operator-Only API**: No end-user facing API in MVP
-- **Role-Based Permissions**: Admin, Operator, Read-Only roles
-- **Rate Limiting**: Per-endpoint and per-IP rate limiting
+- **Operator-Only API**: No end-user facing API in MVP (end-users use Streamlit UI)
+- **Role-Based Permissions**: Admin, Operator, Read-Only roles (future)
+- **Rate Limiting**: Per-endpoint and per-IP rate limiting (future)
 - **Audit Logging**: All API calls logged with user context
 
 ### 3. Content Management Architecture
@@ -181,6 +206,65 @@ YAML Config → JSON Validation → Runtime Loading → Cache Layer → API Serv
 - **A/B Testing Ready**: Content variants supported in schema
 - **Hot Reloading**: Configuration changes without application restart
 - **Validation Pipeline**: Schema validation prevents malformed content deployment
+
+### 4. User Interface Architecture (Phase 4)
+
+#### Dual-Interface Design Pattern
+SpendSense implements a **dual-interface architecture** separating operator and end-user experiences:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Streamlit Application                      │
+│  ┌──────────────────────┐      ┌──────────────────────┐   │
+│  │  Operator Dashboard  │      │   End-User View       │   │
+│  │  (Internal Tool)     │      │   (Public-Facing)     │   │
+│  └──────────────────────┘      └──────────────────────┘   │
+│           │                              │                  │
+│           └──────────────┬────────────────┘                  │
+│                          │                                   │
+│                  ┌───────▼────────┐                          │
+│                  │  Shared API    │                          │
+│                  │  Layer (FastAPI)│                          │
+│                  └────────────────┘                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Operator Dashboard Architecture (Phase 4 Complete)
+**6-Page Dashboard Structure**:
+
+1. **System Overview**: Health metrics, system status, key KPIs
+2. **User Analytics**: Persona distribution, signal insights, user details
+3. **Recommendation Engine**: Recommendation review, approval queue, content performance
+4. **Data Quality**: Quality score distribution, missing data analysis, freshness metrics
+5. **Performance Metrics**: P95 compute time, error rates, fairness metrics, relevance metrics
+6. **System Logs**: Real-time log streaming, error tracking, activity monitoring
+
+**Architecture Patterns**:
+- **Page-Based Routing**: Streamlit multi-page app pattern
+- **Shared State Management**: Session state for user preferences and filters
+- **Auto-Refresh**: Configurable 30-second refresh for real-time monitoring
+- **Database Path Configuration**: Runtime database path configuration for flexibility
+
+#### End-User Interface Architecture (Phase 4A)
+**User View Page** (`src/ui/pages/user_view.py`):
+
+**Design Principles**:
+- **User-Friendly Language**: Plain English explanations, no technical jargon
+- **Visual Persona Cards**: Icon-based persona representation with clear descriptions
+- **Recommendation Cards**: Clear, actionable recommendation display
+- **Rationale Prominence**: "Why this matters" section prominently displayed
+
+**Data Flow**:
+```
+User ID Input → Database Query → Persona Classification → 
+Recommendation Retrieval → Rationale Formatting → UI Rendering
+```
+
+**Key Features**:
+- **Persona Display**: Shows assigned persona with matched criteria
+- **Recommendation List**: 3-5 personalized recommendations with rationales
+- **Content Metadata**: Reading time, content type, "Learn More" links
+- **Error Handling**: Graceful handling of missing users or data
 
 ---
 
@@ -362,6 +446,53 @@ METRICS = {
 }
 ```
 
+#### Fairness Metrics Architecture (Phase 4C)
+**Demographic Parity Framework**:
+
+```python
+# Fairness metrics calculation pattern
+def calculate_fairness_metrics():
+    # 1. Check for demographic data availability
+    # 2. Calculate recommendation rates by demographic group
+    # 3. Compute parity metric (coefficient of variation)
+    # 4. Flag disparities (>10% difference from average)
+    # 5. Return framework if demographics not available
+```
+
+**Key Metrics**:
+- **Recommendation Rate by Group**: % of users receiving recommendations per demographic
+- **Parity Metric (CV)**: Coefficient of variation across groups (lower = better)
+- **Disparity Detection**: Flags groups with >10% difference from average
+- **Parity Status**: "good" (CV < 10%) or "needs_review" (CV >= 10%)
+
+**Architecture Pattern**:
+- **Schema Detection**: Automatically detects demographic columns in users table
+- **Graceful Degradation**: Returns framework when demographics unavailable
+- **Future-Ready**: Framework ready for when demographic data is added
+
+#### Relevance Metrics Architecture (Phase 4B)
+**Content-Persona Fit Scoring**:
+
+```python
+# Relevance calculation pattern
+def calculate_relevance_score(content, persona_id, triggers):
+    # 1. Persona match score (content.personas contains persona_id)
+    # 2. Trigger match score (content.triggers overlaps with user triggers)
+    # 3. Priority score (content.priority_score, capped at 10.0)
+    # 4. Combined relevance score (0.0-1.0)
+```
+
+**Aggregate Relevance Metrics**:
+- **Average Relevance**: Mean relevance score across all recommendations
+- **High Relevance Count**: Recommendations with relevance >= 0.7
+- **Low Relevance Count**: Recommendations with relevance < 0.5
+- **Relevance Distribution**: Breakdown by high/medium/low buckets
+
+**Architecture Pattern**:
+- **Per-Recommendation Scoring**: Individual relevance for each recommendation
+- **Aggregate Analysis**: System-wide relevance metrics
+- **Content-Persona Alignment**: Ensures recommendations match persona focus areas
+
 ### Alerting & Incident Response
 - **Threshold-Based Alerts**: System health metrics (error rates, response times)
 - **Anomaly Detection**: Unusual patterns in user behavior or system performance
@@ -445,6 +576,24 @@ SQLite (MVP) → PostgreSQL (Scale) → Event Sourcing (Enterprise)
 **Trade-offs**: Limited customization, single-user performance
 **Migration Path**: React/Vue.js SPA when UI complexity increases
 
+### ADR-006: Dual-Interface Architecture (Phase 4A)
+**Decision**: Separate operator dashboard and end-user view within single Streamlit app
+**Rationale**: Code reuse, shared API layer, faster development, single deployment
+**Trade-offs**: Both interfaces in same application, potential performance impact
+**Benefits**: Unified codebase, shared components, easier maintenance
+
+### ADR-007: Fairness Metrics Framework (Phase 4C)
+**Decision**: Implement fairness metrics framework with graceful degradation
+**Rationale**: Future-ready for demographic data, demonstrates ethical AI commitment
+**Trade-offs**: Framework returns placeholder when demographics unavailable
+**Migration Path**: Automatic activation when demographic columns added to users table
+
+### ADR-008: Relevance Metrics for Content-Persona Fit (Phase 4B)
+**Decision**: Calculate relevance scores based on content-persona alignment
+**Rationale**: Ensures recommendations match persona focus areas, improves quality
+**Trade-offs**: Additional computation overhead, requires content catalog metadata
+**Benefits**: Measurable recommendation quality, content-persona alignment tracking
+
 ---
 
 ## 🎯 Implementation Roadmap Alignment
@@ -454,6 +603,24 @@ This architecture guide aligns with the phased implementation approach:
 **Phase 1 (Data Foundation)**: Implements core data flow patterns and signal computation architecture
 **Phase 2 (Recommendations)**: Implements content management and recommendation engine patterns  
 **Phase 3 (Operations)**: Implements monitoring, evaluation, and operational patterns
+**Phase 4 (Complete MVP)**: Implements end-user interface, complete API endpoints, fairness/relevance metrics, and full operator dashboard
+
+### Phase 4 Architectural Additions
+
+**Phase 4A (Critical Path)**:
+- End-user interface architecture (User View page)
+- 5th custom persona (Fee Fighter) with configurable criteria
+- Dual-interface Streamlit architecture pattern
+
+**Phase 4B (Complete Original Spec)**:
+- Complete API endpoint architecture (10+ endpoints)
+- Relevance metrics architecture (content-persona fit scoring)
+- Full operator dashboard (6 pages)
+
+**Phase 4C (Submission Polish)**:
+- Fairness metrics architecture (demographic parity framework)
+- Comprehensive evaluation metrics integration
+- Production-ready monitoring patterns
 
 Each architectural pattern is designed to support the incremental complexity approach while maintaining clear migration paths for future scaling needs.
 
