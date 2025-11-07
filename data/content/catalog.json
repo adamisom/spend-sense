@@ -1,295 +1,308 @@
 {
   "version": "1.0",
-  "created_at": "2025-01-04T12:00:00Z",
+  "last_updated": "2025-01-04T12:00:00Z",
   "items": [
     {
-      "content_id": "credit_util_101",
+      "content_id": "credit_utilization_guide",
       "type": "article",
       "title": "Understanding Credit Utilization: The 30% Rule",
-      "description": "Learn why keeping credit card balances below 30% of your limit can boost your credit score by 50+ points.",
+      "description": "Learn how credit utilization affects your credit score and practical strategies to reduce it. Includes balance transfer options and payment timing tips.",
       "personas": ["high_utilization"],
       "signal_triggers": ["high_credit_utilization", "has_interest_charges"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["credit"],
-        "excluded_products": []
-      },
       "url": "/content/credit-utilization-guide",
-      "reading_time_minutes": 8,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "reading_time_minutes": 12,
+      "difficulty_level": "beginner",
+      "eligibility": {
+        "required_account_types": ["credit"]
+      },
+      "priority_score": 9.0,
+      "tags": ["credit", "utilization", "credit_score"]
     },
     {
       "content_id": "debt_paydown_strategy",
-      "type": "checklist", 
+      "type": "checklist",
       "title": "5-Step Debt Paydown Strategy",
-      "description": "A proven step-by-step plan to eliminate credit card debt faster and save thousands in interest.",
+      "description": "A proven checklist to tackle high-interest debt systematically. Choose between debt avalanche and snowball methods based on your situation.",
+      "personas": ["high_utilization"],
+      "signal_triggers": ["high_credit_utilization", "has_interest_charges", "minimum_payment_only"],
+      "url": "/content/debt-paydown-checklist",
+      "reading_time_minutes": 8,
+      "difficulty_level": "intermediate",
+      "eligibility": {
+        "required_account_types": ["credit"]
+      },
+      "priority_score": 8.5,
+      "tags": ["debt", "paydown", "strategy"]
+    },
+    {
+      "content_id": "balance_transfer_calculator",
+      "type": "calculator",
+      "title": "Balance Transfer Savings Calculator",
+      "description": "Calculate potential savings from balance transfers. Compare offers and see how much you could save in interest charges.",
       "personas": ["high_utilization"],
       "signal_triggers": ["high_credit_utilization", "has_interest_charges"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["credit"],
-        "excluded_products": []
-      },
-      "url": "/content/debt-paydown-checklist",
-      "reading_time_minutes": 12,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
-    },
-    {
-      "content_id": "autopay_setup_guide",
-      "type": "checklist",
-      "title": "Set Up Automatic Credit Card Payments",
-      "description": "Never miss a payment again. Step-by-step guide to setting up autopay for all your credit cards.",
-      "personas": ["high_utilization"],
-      "signal_triggers": ["has_interest_charges"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["credit", "checking"],
-        "excluded_products": []
-      },
-      "url": "/content/autopay-setup",
-      "reading_time_minutes": 6,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
-    },
-    {
-      "content_id": "variable_income_budgeting",
-      "type": "article",
-      "title": "Budgeting with Irregular Income: The 50/30/20 Method",
-      "description": "How freelancers and gig workers can create stable budgets even when income varies month to month.",
-      "personas": ["variable_income"],
-      "signal_triggers": ["variable_income", "low_cash_buffer"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": []
-      },
-      "url": "/content/variable-income-budgeting",
-      "reading_time_minutes": 10,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
-    },
-    {
-      "content_id": "emergency_fund_builder",
-      "type": "calculator",
-      "title": "Emergency Fund Calculator",
-      "description": "Calculate exactly how much you need in your emergency fund and create a savings plan to get there.",
-      "personas": ["variable_income", "savings_builder"],
-      "signal_triggers": ["low_cash_buffer", "positive_savings"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["checking"],
-        "excluded_products": []
-      },
-      "url": "/tools/emergency-fund-calculator",
+      "url": "/tools/balance-transfer-calculator",
       "reading_time_minutes": 5,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "difficulty_level": "beginner",
+      "eligibility": {
+        "min_credit_score": 600,
+        "required_account_types": ["credit"]
+      },
+      "priority_score": 7.0,
+      "tags": ["balance_transfer", "calculator", "savings"]
     },
     {
-      "content_id": "subscription_audit_checklist",
+      "content_id": "clearcard_balance_transfer",
+      "type": "partner_offer",
+      "title": "ClearCard 0% Balance Transfer Offer",
+      "description": "Transfer your high-interest balances to ClearCard with 0% APR for 18 months. No transfer fees for qualified applicants.",
+      "personas": ["high_utilization"],
+      "signal_triggers": ["high_credit_utilization", "has_interest_charges"],
+      "url": "/offers/clearcard-balance-transfer",
+      "reading_time_minutes": 3,
+      "difficulty_level": "beginner",
+      "eligibility": {
+        "min_credit_score": 650,
+        "min_income": 35000,
+        "excluded_products": ["ClearCard"]
+      },
+      "priority_score": 6.0,
+      "tags": ["partner_offer", "balance_transfer", "0_apr"]
+    },
+    {
+      "content_id": "subscription_audit_guide",
       "type": "checklist",
       "title": "The 10-Minute Subscription Audit",
-      "description": "Quick checklist to review all your subscriptions and cancel the ones you don't need. Save $50-200/month.",
+      "description": "Quick checklist to review all your subscriptions, identify unused services, and cancel or downgrade to save money.",
       "personas": ["subscription_heavy"],
-      "signal_triggers": ["many_subscriptions", "high_subscription_spend"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": []
-      },
+      "signal_triggers": ["many_subscriptions", "high_subscription_spend", "high_subscription_share"],
       "url": "/content/subscription-audit",
-      "reading_time_minutes": 4,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "reading_time_minutes": 10,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 7.5,
+      "tags": ["subscriptions", "audit", "savings"]
     },
     {
       "content_id": "subscription_negotiation",
       "type": "article",
-      "title": "How to Negotiate Lower Subscription Prices",
-      "description": "Scripts and strategies to get discounts on Netflix, Spotify, phone bills, and more. Average savings: $300/year.",
+      "title": "How to Negotiate Lower Subscription Rates",
+      "description": "Scripts and strategies for negotiating better rates on your existing subscriptions. Includes specific tactics for different service types.",
       "personas": ["subscription_heavy"],
       "signal_triggers": ["high_subscription_spend"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": []
-      },
       "url": "/content/subscription-negotiation",
-      "reading_time_minutes": 8,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "reading_time_minutes": 15,
+      "difficulty_level": "intermediate",
+      "eligibility": {},
+      "priority_score": 6.5,
+      "tags": ["subscriptions", "negotiation", "savings"]
+    },
+    {
+      "content_id": "subscription_tracker",
+      "type": "calculator",
+      "title": "Subscription Spending Tracker",
+      "description": "Track all your subscriptions in one place. Get alerts for price increases and renewal dates. Calculate your total monthly cost.",
+      "personas": ["subscription_heavy"],
+      "signal_triggers": ["many_subscriptions", "high_subscription_spend"],
+      "url": "/tools/subscription-tracker",
+      "reading_time_minutes": 7,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 7.0,
+      "tags": ["subscriptions", "tracker", "organization"]
+    },
+    {
+      "content_id": "percentage_based_budgeting",
+      "type": "article",
+      "title": "Percentage-Based Budgeting for Variable Income",
+      "description": "Learn how to budget when your income changes month to month. Use percentages instead of fixed amounts to stay flexible.",
+      "personas": ["variable_income"],
+      "signal_triggers": ["variable_income", "high_income_variability"],
+      "url": "/content/percentage-budgeting",
+      "reading_time_minutes": 18,
+      "difficulty_level": "intermediate",
+      "eligibility": {},
+      "priority_score": 8.0,
+      "tags": ["budgeting", "variable_income", "gig_economy"]
+    },
+    {
+      "content_id": "emergency_fund_builder",
+      "type": "checklist",
+      "title": "Emergency Fund Quick-Start Guide",
+      "description": "Step-by-step plan to build your emergency fund, even with irregular income. Start with $500 and build up systematically.",
+      "personas": ["variable_income"],
+      "signal_triggers": ["low_cash_buffer", "low_emergency_fund"],
+      "url": "/content/emergency-fund-guide",
+      "reading_time_minutes": 12,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 9.0,
+      "tags": ["emergency_fund", "savings", "financial_security"]
+    },
+    {
+      "content_id": "income_smoothing_strategies",
+      "type": "article",
+      "title": "Income Smoothing for Freelancers and Gig Workers",
+      "description": "Practical strategies to create more predictable cash flow from irregular income. Includes client retainer models and savings strategies.",
+      "personas": ["variable_income"],
+      "signal_triggers": ["variable_income", "high_income_variability", "low_cash_buffer"],
+      "url": "/content/income-smoothing",
+      "reading_time_minutes": 20,
+      "difficulty_level": "advanced",
+      "eligibility": {},
+      "priority_score": 7.5,
+      "tags": ["freelance", "gig_economy", "cash_flow"]
     },
     {
       "content_id": "high_yield_savings_guide",
       "type": "article",
       "title": "High-Yield Savings Accounts: Earn 10x More",
-      "description": "Why you're losing money in a 0.01% savings account and how to earn 4-5% APY with zero risk.",
+      "description": "Compare high-yield savings accounts and learn how to maximize your savings growth. Includes current rate comparisons and switching tips.",
       "personas": ["savings_builder"],
       "signal_triggers": ["positive_savings"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["savings"],
-        "excluded_products": []
-      },
       "url": "/content/high-yield-savings",
-      "reading_time_minutes": 7,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "reading_time_minutes": 14,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 6.0,
+      "tags": ["savings", "high_yield", "interest_rates"]
     },
     {
-      "content_id": "automated_savings_setup",
+      "content_id": "savings_automation_guide",
       "type": "checklist",
-      "title": "Set Up Automated Savings in 15 Minutes",
-      "description": "Step-by-step guide to automate your savings so you never have to think about it again.",
+      "title": "Automate Your Savings in 15 Minutes",
+      "description": "Quick setup guide for automatic savings transfers. Set up multiple goals and pay yourself first without thinking about it.",
       "personas": ["savings_builder"],
       "signal_triggers": ["positive_savings"],
+      "url": "/content/automate-savings",
+      "reading_time_minutes": 8,
+      "difficulty_level": "beginner",
       "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": ["checking", "savings"],
-        "excluded_products": []
+        "required_account_types": ["checking", "savings"]
       },
-      "url": "/content/automated-savings",
-      "reading_time_minutes": 5,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "priority_score": 7.5,
+      "tags": ["automation", "savings", "goals"]
     },
     {
-      "content_id": "investment_basics_primer",
+      "content_id": "investment_basics",
       "type": "article",
-      "title": "Investing Basics: From Savings to Wealth Building",
-      "description": "When you're ready to move beyond savings accounts. A beginner's guide to index funds and retirement accounts.",
+      "title": "Beyond Savings: Investment Basics for Beginners",
+      "description": "When you're ready to move beyond savings accounts. Introduction to index funds, ETFs, and retirement accounts.",
       "personas": ["savings_builder"],
       "signal_triggers": ["positive_savings"],
+      "url": "/content/investment-basics",
+      "reading_time_minutes": 25,
+      "difficulty_level": "intermediate",
+      "eligibility": {
+        "min_income": 50000
+      },
+      "priority_score": 5.5,
+      "tags": ["investing", "retirement", "wealth_building"]
+    },
+    {
+      "content_id": "wealthfront_robo_advisor",
+      "type": "partner_offer",
+      "title": "Wealthfront Automated Investing",
+      "description": "Start investing with Wealthfront's robo-advisor. $0 minimum, automated rebalancing, and tax-loss harvesting. First $5,000 managed free.",
+      "personas": ["savings_builder"],
+      "signal_triggers": ["positive_savings"],
+      "url": "/offers/wealthfront-investing",
+      "reading_time_minutes": 5,
+      "difficulty_level": "beginner",
       "eligibility": {
         "min_income": 40000,
-        "min_credit_score": null,
-        "required_account_types": ["savings"],
-        "excluded_products": []
+        "excluded_products": ["Wealthfront", "Betterment"]
       },
-      "url": "/content/investment-basics",
-      "reading_time_minutes": 12,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "priority_score": 4.0,
+      "tags": ["partner_offer", "robo_advisor", "investing"]
     },
     {
-      "content_id": "financial_basics_intro",
+      "content_id": "financial_basics_101",
       "type": "article",
-      "title": "Getting Started with Financial Health",
-      "description": "New to managing money? Start here. The fundamentals of budgeting, saving, and building good financial habits.",
+      "title": "Financial Basics: Getting Started",
+      "description": "Essential financial concepts everyone should know. Budgeting, saving, credit basics, and building healthy money habits.",
       "personas": ["insufficient_data"],
       "signal_triggers": ["insufficient_data"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": []
-      },
       "url": "/content/financial-basics",
-      "reading_time_minutes": 15,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "reading_time_minutes": 16,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 8.0,
+      "tags": ["basics", "education", "fundamentals"]
     },
     {
-      "content_id": "data_connection_guide",
+      "content_id": "budgeting_101",
       "type": "checklist",
-      "title": "Connect Your Accounts for Better Insights",
-      "description": "How to safely link your financial accounts to get personalized recommendations and track your progress.",
-      "personas": ["insufficient_data"],
+      "title": "Simple Budgeting Checklist",
+      "description": "5 steps to create your first budget. Track income, categorize expenses, and set up a simple system that works.",
+      "personas": ["insufficient_data", "variable_income"],
       "signal_triggers": ["insufficient_data"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": []
-      },
-      "url": "/content/data-connection",
-      "reading_time_minutes": 6,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "url": "/content/budgeting-101",
+      "reading_time_minutes": 10,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 8.5,
+      "tags": ["budgeting", "basics", "getting_started"]
     },
     {
-      "content_id": "partner_clearcard_balance_transfer",
-      "type": "partner_offer",
-      "title": "ClearCard 0% Balance Transfer Offer",
-      "description": "Transfer your high-interest debt to a 0% APR card for 21 months. Save thousands in interest charges.",
+      "content_id": "overdraft_protection_guide",
+      "type": "article",
+      "title": "How to Avoid Overdraft Fees",
+      "description": "Strategies to prevent overdraft fees and set up proper account monitoring. Includes overdraft protection options and account management tips.",
+      "personas": ["variable_income", "insufficient_data"],
+      "signal_triggers": ["low_cash_buffer", "variable_income"],
+      "url": "/content/avoid-overdraft-fees",
+      "reading_time_minutes": 12,
+      "difficulty_level": "beginner",
+      "eligibility": {
+        "required_account_types": ["checking"]
+      },
+      "priority_score": 7.0,
+      "tags": ["overdraft", "fees", "account_management"]
+    },
+    {
+      "content_id": "credit_score_improvement",
+      "type": "checklist",
+      "title": "30-Day Credit Score Improvement Plan",
+      "description": "Step-by-step actions to improve your credit score in 30 days. Focus on quick wins while building long-term habits.",
       "personas": ["high_utilization"],
       "signal_triggers": ["high_credit_utilization", "has_interest_charges"],
+      "url": "/content/credit-score-plan",
+      "reading_time_minutes": 15,
+      "difficulty_level": "intermediate",
       "eligibility": {
-        "min_income": 30000,
-        "min_credit_score": 650,
-        "required_account_types": ["credit"],
-        "excluded_products": ["clearcard_balance_transfer"]
+        "required_account_types": ["credit"]
       },
-      "url": "/partners/clearcard-balance-transfer",
-      "reading_time_minutes": 3,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "priority_score": 8.0,
+      "tags": ["credit_score", "improvement", "action_plan"]
     },
     {
-      "content_id": "partner_maxsave_high_yield",
-      "type": "partner_offer",
-      "title": "MaxSave High-Yield Savings - 4.5% APY",
-      "description": "Earn 4.5% APY on your savings with no minimum balance or monthly fees. FDIC insured up to $250k.",
-      "personas": ["savings_builder"],
-      "signal_triggers": ["positive_savings"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": ["maxsave_savings"]
-      },
-      "url": "/partners/maxsave-savings",
-      "reading_time_minutes": 2,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
-    },
-    {
-      "content_id": "partner_budgetpro_app",
-      "type": "partner_offer",
-      "title": "BudgetPro - Free Budgeting App for Variable Income",
-      "description": "Purpose-built budgeting app for freelancers and gig workers. Handles irregular income automatically.",
+      "content_id": "side_hustle_tax_guide",
+      "type": "article",
+      "title": "Tax Tips for Side Hustles and Gig Work",
+      "description": "Essential tax considerations for freelancers and gig workers. Deductions, estimated taxes, and record-keeping strategies.",
       "personas": ["variable_income"],
-      "signal_triggers": ["variable_income"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": ["budgetpro_app"]
-      },
-      "url": "/partners/budgetpro-app",
-      "reading_time_minutes": 2,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "signal_triggers": ["variable_income", "high_income_variability"],
+      "url": "/content/gig-work-taxes",
+      "reading_time_minutes": 22,
+      "difficulty_level": "advanced",
+      "eligibility": {},
+      "priority_score": 6.0,
+      "tags": ["taxes", "freelance", "gig_economy"]
     },
     {
-      "content_id": "partner_subtracker_service",
-      "type": "partner_offer",
-      "title": "SubTracker - Cancel Unwanted Subscriptions",
-      "description": "Professional service to audit and cancel your unwanted subscriptions. Average savings: $200/month.",
-      "personas": ["subscription_heavy"],
-      "signal_triggers": ["many_subscriptions", "high_subscription_spend"],
-      "eligibility": {
-        "min_income": null,
-        "min_credit_score": null,
-        "required_account_types": [],
-        "excluded_products": ["subtracker_service"]
-      },
-      "url": "/partners/subtracker",
-      "reading_time_minutes": 2,
-      "created_at": "2025-01-04T12:00:00Z",
-      "version": "1.0"
+      "content_id": "savings_challenge",
+      "type": "calculator",
+      "title": "52-Week Savings Challenge Calculator",
+      "description": "Interactive calculator for the popular 52-week savings challenge. Customize the amounts and track your progress throughout the year.",
+      "personas": ["savings_builder", "variable_income"],
+      "signal_triggers": ["positive_savings", "low_emergency_fund"],
+      "url": "/tools/savings-challenge",
+      "reading_time_minutes": 5,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 5.0,
+      "tags": ["savings", "challenge", "gamification"]
     }
   ]
 }
-

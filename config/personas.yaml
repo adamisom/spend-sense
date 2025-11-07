@@ -1,0 +1,137 @@
+# Persona Configuration
+# CRITICAL: Field names must match UserSignals schema exactly
+
+personas:
+  high_utilization:
+    name: "High Utilization"
+    priority: 1  # Highest priority (lowest number)
+    description: "Users with high credit card utilization or payment issues"
+    criteria:
+      - field: "credit_utilization_max"
+        operator: ">="
+        value: 0.5
+        description: "Credit utilization 50% or higher"
+      - field: "has_interest_charges"
+        operator: "=="
+        value: true
+        combinator: "OR"
+        description: "Currently paying interest charges"
+      - field: "is_overdue"
+        operator: "=="
+        value: true
+        combinator: "OR"
+        description: "Has overdue payments"
+    focus_areas:
+      - "utilization_reduction"
+      - "payment_planning"
+      - "autopay_setup"
+      - "debt_consolidation"
+    why_priority_1: "Credit issues can spiral quickly and damage long-term financial health"
+    
+  variable_income:
+    name: "Variable Income Budgeter"
+    priority: 2
+    description: "Users with irregular income patterns and cash flow challenges"
+    criteria:
+      - field: "income_pay_gap"
+        operator: ">"
+        value: 45
+        description: "Income gaps longer than 45 days"
+      - field: "cash_flow_buffer"
+        operator: "<"
+        value: 1.0
+        combinator: "AND"
+        description: "Cash flow buffer less than 1 month"
+    focus_areas:
+      - "percentage_budgets"
+      - "emergency_fund"
+      - "income_smoothing"
+      - "overdraft_protection"
+    why_priority_2: "Cash flow problems are time-sensitive and affect daily life"
+    
+  subscription_heavy:
+    name: "Subscription-Heavy"
+    priority: 3
+    description: "Users with many subscriptions or high subscription spending"
+    criteria:
+      - field: "subscription_count"
+        operator: ">="
+        value: 3
+        description: "Three or more active subscriptions"
+      - field: "monthly_subscription_spend"
+        operator: ">="
+        value: 50.0
+        combinator: "OR"
+        description: "Monthly subscription spend $50 or more"
+      - field: "subscription_share"
+        operator: ">="
+        value: 0.10
+        combinator: "OR"
+        description: "Subscriptions are 10% or more of total spending"
+    focus_areas:
+      - "subscription_audit"
+      - "cancellation_strategies"
+      - "negotiation_tips"
+      - "usage_tracking"
+    why_priority_3: "Cost optimization opportunity, but not urgent"
+    
+  savings_builder:
+    name: "Savings Builder"
+    priority: 4
+    description: "Users actively saving with good credit management"
+    criteria:
+      - field: "savings_growth_rate"
+        operator: ">="
+        value: 0.02
+        description: "Positive savings growth rate (2%+ monthly)"
+      - field: "monthly_savings_inflow"
+        operator: ">="
+        value: 200.0
+        combinator: "OR"
+        description: "Monthly savings inflow of $200 or more"
+      - field: "credit_utilization_max"
+        operator: "<"
+        value: 0.30
+        combinator: "AND"
+        description: "Credit utilization below 30%"
+    focus_areas:
+      - "goal_setting"
+      - "automation"
+      - "apy_optimization"
+      - "investment_basics"
+    why_priority_4: "Growth opportunity for users already in good financial shape"
+    
+  insufficient_data:
+    name: "Insufficient Data"
+    priority: 999  # Fallback priority
+    description: "Users with insufficient data for specific recommendations"
+    criteria:
+      - field: "insufficient_data"
+        operator: "=="
+        value: true
+        description: "Flagged as having insufficient data"
+      - field: "data_quality_score"
+        operator: "<"
+        value: 0.5
+        combinator: "OR"
+        description: "Data quality score below 50%"
+    focus_areas:
+      - "financial_basics"
+      - "data_connection_guidance"
+      - "general_education"
+    why_fallback: "Provides general guidance when specific analysis isn't possible"
+
+# Persona assignment settings
+assignment_settings:
+  # How to handle multiple persona matches
+  tie_breaking: "priority"  # Options: priority, first_match, all_matches
+  
+  # Minimum confidence thresholds
+  min_data_quality_score: 0.1  # Below this, always assign insufficient_data
+  
+  # Logging settings
+  log_all_matches: true  # Log all personas that match, not just the assigned one
+  
+  # Validation settings
+  require_at_least_one_match: true  # If no personas match, assign insufficient_data
+
