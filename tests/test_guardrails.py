@@ -14,7 +14,7 @@ class TestGuardrails:
         """Test consent check when user has consented."""
         guardrails = Guardrails()
         
-        with patch('src.guardrails.guardrails.database_transaction') as mock_db:
+        with patch('src.db.connection.database_transaction') as mock_db:
             mock_conn = MagicMock()
             mock_row = MagicMock()
             mock_row.__getitem__.return_value = True
@@ -28,7 +28,7 @@ class TestGuardrails:
         """Test consent check raises GuardrailViolation when no consent."""
         guardrails = Guardrails()
         
-        with patch('src.guardrails.guardrails.database_transaction') as mock_db:
+        with patch('src.db.connection.database_transaction') as mock_db:
             mock_conn = MagicMock()
             mock_row = MagicMock()
             mock_row.__getitem__.return_value = False
@@ -43,7 +43,7 @@ class TestGuardrails:
         """Test consent check handles missing user gracefully."""
         guardrails = Guardrails()
         
-        with patch('src.guardrails.guardrails.database_transaction') as mock_db:
+        with patch('src.db.connection.database_transaction') as mock_db:
             mock_conn = MagicMock()
             mock_conn.execute.return_value.fetchone.return_value = None
             mock_db.return_value.__enter__.return_value = mock_conn
@@ -59,9 +59,10 @@ class TestGuardrails:
             content_id="test",
             type=ContentType.ARTICLE,
             title="You're stupid with money",
-            description="This is a test",
+            description="This is a test description",
             personas=["high_utilization"],
-            url="/test"
+            url="/test",
+            reading_time_minutes=10
         )
         
         with pytest.raises(GuardrailViolation) as exc_info:
@@ -101,7 +102,7 @@ class TestGuardrails:
         """Test rate limit check when under limit."""
         guardrails = Guardrails()
         
-        with patch('src.guardrails.guardrails.database_transaction') as mock_db:
+        with patch('src.db.connection.database_transaction') as mock_db:
             mock_conn = MagicMock()
             mock_row = MagicMock()
             mock_row.__getitem__.return_value = 5  # Under limit of 10
@@ -115,7 +116,7 @@ class TestGuardrails:
         """Test rate limit check when exceeded."""
         guardrails = Guardrails()
         
-        with patch('src.guardrails.guardrails.database_transaction') as mock_db:
+        with patch('src.db.connection.database_transaction') as mock_db:
             mock_conn = MagicMock()
             mock_row = MagicMock()
             mock_row.__getitem__.return_value = 15  # Over limit of 10

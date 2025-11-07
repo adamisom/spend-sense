@@ -6,6 +6,7 @@ from src.features.schema import UserSignals
 from src.recommend.recommendation_engine import RecommendationEngine
 from src.personas.persona_classifier import classify_persona
 from src.recommend.signal_mapper import map_signals_to_triggers
+from src.recommend.content_schema import SignalTrigger
 
 class TestIntegration:
     """Integration tests for end-to-end flows."""

@@ -21,7 +21,8 @@ class TestContentSchema:
             title="Test Article",
             description="Test description for validation",
             personas=["high_utilization"],
-            url="/test"
+            url="/test",
+            reading_time_minutes=10
         )
         assert item.content_id == "test"
         assert item.type == ContentType.ARTICLE
@@ -64,10 +65,11 @@ class TestContentSchema:
             item = ContentItem(
                 content_id="test",
                 type=ContentType.ARTICLE,
-                title="Test",
-                description="Test description",
+                title="Test Article Title",
+                description="Test description for validation",
                 personas=["high_utilization"],
-                url=url
+                url=url,
+                reading_time_minutes=10
             )
             assert item.url == url
     
@@ -99,18 +101,20 @@ class TestContentSchema:
             ContentItem(
                 content_id="duplicate",
                 type=ContentType.ARTICLE,
-                title="Test 1",
-                description="Test",
+                title="Test Article One",
+                description="Test description one for validation",
                 personas=["high_utilization"],
-                url="/test1"
+                url="/test1",
+                reading_time_minutes=10
             ),
             ContentItem(
                 content_id="duplicate",  # Duplicate!
                 type=ContentType.ARTICLE,
-                title="Test 2",
-                description="Test",
+                title="Test Article Two",
+                description="Test description two for validation",
                 personas=["high_utilization"],
-                url="/test2"
+                url="/test2",
+                reading_time_minutes=10
             )
         ]
         
