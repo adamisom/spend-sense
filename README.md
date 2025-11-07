@@ -245,8 +245,6 @@ python scripts/validate_implementation.py  # Validates project structure
 
 ## 📖 Project Structure
 
-### Project Structure
-
 ```
 spend-sense/
 ├── src/                    # Source code
