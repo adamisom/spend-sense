@@ -27,7 +27,7 @@ def get_user_data(db_path: str) -> pd.DataFrame:
                 s.window,
                 s.signals,
                 s.computed_at as signals_computed_at,
-                COUNT(DISTINCT r.recommendation_id) as total_recommendations,
+                COUNT(DISTINCT r.rec_id) as total_recommendations,
                 MAX(r.created_at) as last_recommendation_at
             FROM users u
             LEFT JOIN user_signals s ON u.user_id = s.user_id AND s.window = '180d'
@@ -175,7 +175,7 @@ def render_data_quality_analysis(df: pd.DataFrame):
         fig = px.histogram(
             df, 
             x='data_quality_score',
-            bins=20,
+            nbins=20,
             title="Data Quality Score Distribution",
             labels={'data_quality_score': 'Data Quality Score', 'count': 'Number of Users'}
         )
@@ -210,11 +210,14 @@ def render_signal_insights(df: pd.DataFrame):
         # Credit utilization distribution
         credit_utils = df['credit_utilization_max'].dropna()
         if not credit_utils.empty:
+            # Convert Series to DataFrame for px.histogram
+            credit_df = pd.DataFrame({'credit_utilization': credit_utils})
             fig = px.histogram(
-                credit_utils,
-                bins=20,
+                credit_df,
+                x='credit_utilization',
+                nbins=20,
                 title="Credit Utilization Distribution",
-                labels={'value': 'Credit Utilization', 'count': 'Number of Users'}
+                labels={'credit_utilization': 'Credit Utilization', 'count': 'Number of Users'}
             )
             fig.add_vline(x=0.3, line_dash="dash", line_color="orange", 
                          annotation_text="30% (Recommended)")
@@ -228,11 +231,15 @@ def render_signal_insights(df: pd.DataFrame):
         # Subscription count distribution
         sub_counts = df['subscription_count']
         if not sub_counts.empty:
+            # Convert Series to DataFrame for px.histogram
+            sub_df = pd.DataFrame({'subscription_count': sub_counts})
+            nbins = max(10, int(sub_counts.max()) + 1) if sub_counts.max() > 0 else 10
             fig = px.histogram(
-                sub_counts,
-                bins=max(10, int(sub_counts.max()) + 1) if sub_counts.max() > 0 else 10,
+                sub_df,
+                x='subscription_count',
+                nbins=nbins,
                 title="Subscription Count Distribution", 
-                labels={'value': 'Number of Subscriptions', 'count': 'Number of Users'}
+                labels={'subscription_count': 'Number of Subscriptions', 'count': 'Number of Users'}
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -321,4 +328,18 @@ def render_user_analytics():
     st.markdown("---")
     
     render_user_list(df)
+
+# Streamlit multi-page routing: When accessed via /user_analytics URL,
+# Streamlit executes this file directly and runs module-level code.
+# Initialize session state and render the page.
+if 'db_path' not in st.session_state:
+    st.session_state.db_path = "db/spend_sense.db"
+
+# Render the page (executes when file is run as a Streamlit page)
+# Note: This also executes on import, but Streamlit's execution model handles this correctly
+try:
+    render_user_analytics()
+except Exception as e:
+    st.error(f"Error rendering User Analytics: {e}")
+    logger.exception("Error in user_analytics page")
 

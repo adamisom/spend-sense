@@ -86,11 +86,26 @@ uvicorn src.api.routes:app --host 0.0.0.0 --reload
 
 # In another terminal, start dashboard
 make shell
-streamlit run src/ui/operator_view.py --server.address 0.0.0.0
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
 
 # In another terminal, run tests continuously
 make shell  
 pytest tests/ -v --watch
+```
+
+**Streamlit Process Management:**
+
+```bash
+# Kill all Streamlit processes on host
+pkill -f streamlit
+
+# Kill process using port 8501
+lsof -ti:8501 | xargs kill -9
+
+# Kill Streamlit in Docker container (if needed)
+docker-compose exec spendsense-app killall streamlit
+# or find and kill manually
+docker-compose exec spendsense-app ps aux | grep streamlit
 ```
 
 ### 🎯 Performance Optimizations
@@ -111,6 +126,21 @@ pytest tests/ -v --watch
 # Solution: Start Colima first
 colima start
 ```
+
+**❌ "Docker not running! Run 'colima start' first" (but Colima says it's already running)**
+
+This happens when Colima's process is running but the Docker daemon inside it isn't accessible. This is a common state issue.
+
+```bash
+# Solution: Restart Colima properly
+colima stop    # Fully stop Colima
+colima start   # Start it fresh
+
+# Then verify Docker is accessible
+docker ps      # Should work without errors
+```
+
+**Why this happens:** Colima's process can be running while the Docker daemon inside the VM isn't actually accessible. A full restart ensures the socket files are properly set up and the daemon is running.
 
 **❌ "make: command not found"**
 
@@ -167,6 +197,19 @@ make up
 # Solution: Recreate container with new configuration
 make down && make up
 # This ensures new volume mounts and config are applied
+```
+
+**❌ "Port 8501 is already in use" (Streamlit)**
+
+```bash
+# Solution: Kill Streamlit processes
+pkill -f streamlit
+
+# Or kill process using port 8501 specifically
+lsof -ti:8501 | xargs kill -9
+
+# If running in container
+docker-compose exec spendsense-app killall streamlit
 ```
 
 ## Local Development (Alternative)
