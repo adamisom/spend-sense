@@ -14,8 +14,15 @@ services:
       - ./tests:/app/tests:cached
       - ./scripts:/app/scripts:cached
       - ./data:/app/data:delegated
-      # Persistent database and logs (survive container restarts)
-      - spendsense-db:/app/db
+      - ./db:/app/db:cached  # Mount db directory for schema.sql and database files
+      # Mount root files for validation scripts
+      - ./README.md:/app/README.md:ro
+      - ./Dockerfile:/app/Dockerfile:ro
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./Makefile:/app/Makefile:ro
+      - ./requirements.txt:/app/requirements.txt:ro
+      - ./.gitignore:/app/.gitignore:ro
+      # Persistent logs (survive container restarts)
       - spendsense-logs:/app/logs
       # Performance: exclude __pycache__ from syncing
       - /app/src/__pycache__
@@ -73,7 +80,5 @@ services:
       "
 
 volumes:
-  spendsense-db:
-    driver: local
   spendsense-logs:
     driver: local

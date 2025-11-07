@@ -45,6 +45,9 @@ colima start
 cd /Users/adamisom/Desktop/spend-sense
 make init
 
+# Start development container (required before make shell)
+make up
+
 # Validate project structure
 make shell
 python scripts/validate_implementation.py
@@ -56,6 +59,9 @@ exit
 ### Step 2: Test Database Foundation
 
 ```bash
+# Ensure container is running
+make up
+
 make shell
 # Test signal schema
 python -c "from src.features.schema import UserSignals, validate_signal_completeness; signals = UserSignals(credit_utilization_max=0.65, subscription_count=3); print('✅ Signal schema works')"
@@ -70,6 +76,9 @@ exit
 ### Step 3: Test Data Generation
 
 ```bash
+# Ensure container is running
+make up
+
 make shell
 # Generate test data (all 4 CSV files)
 python -m src.ingest.data_generator --users 10 --output /tmp/test_data
@@ -92,6 +101,9 @@ exit
 ### Step 4: Test Data Loading Pipeline
 
 ```bash
+# Ensure container is running
+make up
+
 make shell
 # Generate and load test data
 python -m src.ingest.data_generator --users 10 --output /tmp/test_data
@@ -113,6 +125,9 @@ exit
 ### Step 5: Run Comprehensive Phase 1 Tests
 
 ```bash
+# Ensure container is running
+make up
+
 make shell
 python scripts/test_phase1.py
 exit
@@ -123,6 +138,9 @@ exit
 ### Step 6: Full Integration Test
 
 ```bash
+# Ensure container is running
+make up
+
 # Test complete pipeline end-to-end
 make shell
 python -m src.ingest.data_generator --users 5 --output data/test

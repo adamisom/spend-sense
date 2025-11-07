@@ -18,11 +18,14 @@ make up && make shell
 ### ⭐ Most Common Commands (Use These 90% of the Time)
 
 ```bash
+make up         # Start development container (run first!)
 make shell      # Access container shell (instant)
+                #   To exit: type 'exit' or press Ctrl+D
 make test       # Run all tests
 make quick-run  # Quick validation (fastest)  
 make data       # Generate synthetic data
 make logs       # View container logs
+make down       # Stop container (when done or before config changes)
 ```
 
 ### 🔥 Ultra-Fast Iteration Loop
@@ -35,7 +38,7 @@ make up
 make shell
 # Edit code in your IDE
 python -m src.ingest.data_generator --users 5  # Test changes
-exit
+exit  # Exit shell (or Ctrl+D)
 # Repeat
 ```
 
@@ -53,6 +56,17 @@ make quick-test FILE=test_features.py
 
 ```bash
 make down && make up  # Data is still there!
+```
+
+**Container Management**:
+```bash
+make up          # Start container (required before make shell)
+make shell       # Access container shell
+                 # To exit shell: type 'exit' or press Ctrl+D
+                 # Note: Exiting shell doesn't stop the container
+make down        # Stop container (clean shutdown)
+make down && make up  # Restart container (use after docker-compose.yml changes)
+docker-compose restart  # Quick restart without stopping (faster)
 ```
 
 **IDE Integration**: Edit code normally - container picks up changes immediately.
@@ -137,6 +151,22 @@ make clean && colima restart && make init
 # Solution: Check if container is running
 make status
 # If not running: make up
+```
+
+**❌ "service 'spendsense-app' is not running" or "make shell" fails**
+
+```bash
+# Solution: Start the container first
+make up
+# Then try make shell again
+```
+
+**❌ After changing docker-compose.yml or Dockerfile**
+
+```bash
+# Solution: Recreate container with new configuration
+make down && make up
+# This ensures new volume mounts and config are applied
 ```
 
 ## Local Development (Alternative)

@@ -79,13 +79,41 @@ def database_transaction(db_path: str = "db/spend_sense.db"):
     if conn:
         conn.close()
 
-def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_sense.db"):
-    """Initialize database from schema file."""
+def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_sense.db", force: bool = False):
+    """Initialize database from schema file.
+    
+    Args:
+        schema_path: Path to schema SQL file
+        db_path: Path to database file
+        force: If True, drop existing tables and recreate. If False, skip if tables exist.
+    """
     try:
         if not Path(schema_path).exists():
             raise DatabaseError("initialization", f"Schema file not found: {schema_path}")
         
         with database_transaction(db_path) as conn:
+            # Check if database is already initialized
+            if not force:
+                try:
+                    result = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
+                    if result:
+                        logger.info(f"Database already initialized: {db_path} (use force=True to reinitialize)")
+                        return
+                except sqlite3.Error:
+                    pass  # Table doesn't exist, proceed with initialization
+            
+            # If force=True, drop existing tables
+            if force:
+                logger.info("Dropping existing tables...")
+                conn.execute("DROP TABLE IF EXISTS recommendations")
+                conn.execute("DROP TABLE IF EXISTS persona_assignments")
+                conn.execute("DROP TABLE IF EXISTS user_signals")
+                conn.execute("DROP TABLE IF EXISTS liabilities")
+                conn.execute("DROP TABLE IF EXISTS transactions")
+                conn.execute("DROP TABLE IF EXISTS accounts")
+                conn.execute("DROP TABLE IF EXISTS users")
+            
+            # Create tables from schema
             with open(schema_path) as f:
                 schema_sql = f.read()
             conn.executescript(schema_sql)
