@@ -58,6 +58,16 @@ def map_signals_to_triggers(signals: UserSignals) -> List[SignalTrigger]:
         if signals.emergency_fund_months is not None and signals.emergency_fund_months < 3.0:
             triggers.append(SignalTrigger.LOW_EMERGENCY_FUND)
         
+        # Bank fee triggers (NEW)
+        if signals.monthly_bank_fees >= 20.0:
+            triggers.append(SignalTrigger.HIGH_BANK_FEES)
+        if signals.has_overdraft_fees:
+            triggers.append(SignalTrigger.HAS_OVERDRAFT_FEES)
+        if signals.has_atm_fees:
+            triggers.append(SignalTrigger.HAS_ATM_FEES)
+        if signals.has_maintenance_fees:
+            triggers.append(SignalTrigger.HAS_MAINTENANCE_FEES)
+        
         # Data quality triggers
         if signals.insufficient_data:
             triggers.append(SignalTrigger.INSUFFICIENT_DATA)
@@ -93,6 +103,12 @@ def get_trigger_explanations() -> Dict[SignalTrigger, str]:
         SignalTrigger.POSITIVE_SAVINGS: "You're actively saving money",
         SignalTrigger.NEGATIVE_SAVINGS_GROWTH: "Your savings balance is decreasing",
         SignalTrigger.LOW_EMERGENCY_FUND: "Your emergency fund covers less than 3 months of expenses",
+        
+        # Bank fee explanations
+        SignalTrigger.HIGH_BANK_FEES: "You're paying $20+ monthly in bank fees",
+        SignalTrigger.HAS_OVERDRAFT_FEES: "You've been charged overdraft fees",
+        SignalTrigger.HAS_ATM_FEES: "You're paying ATM fees",
+        SignalTrigger.HAS_MAINTENANCE_FEES: "You're paying account maintenance fees",
         
         # Data quality explanations
         SignalTrigger.INSUFFICIENT_DATA: "We need more transaction data to provide personalized recommendations"

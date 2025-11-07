@@ -312,7 +312,73 @@ spend-sense/
 2. Load data into database: `python scripts/load_data.py`
 3. Run tests: `pytest tests/ -v`
 4. Start API server: `uvicorn src.api.routes:app --reload`
-5. Start operator dashboard: `streamlit run src/ui/operator_view.py`
+5. Start operator dashboard: `streamlit run src/ui/streamlit_app.py`
+
+### API Usage Examples
+
+The SpendSense API runs on `http://localhost:8000` (when started with `uvicorn src.api.routes:app --reload`).
+
+#### Get User Profile
+```bash
+curl http://localhost:8000/profile/user_001?window=180d
+```
+
+Response:
+```json
+{
+  "user_id": "user_001",
+  "persona": {
+    "persona_id": "high_utilization",
+    "persona_name": "High Utilization",
+    "priority": 1,
+    "confidence": 0.85,
+    "matched_criteria": ["Credit utilization 50% or higher"]
+  },
+  "signals": { ... },
+  "triggers": ["high_credit_utilization", "has_interest_charges"]
+}
+```
+
+#### Get Recommendations
+```bash
+curl http://localhost:8000/recommendations/user_001?max_recommendations=5
+```
+
+Response:
+```json
+{
+  "user_id": "user_001",
+  "recommendations": [
+    {
+      "rec_id": "uuid",
+      "content_id": "credit_utilization_guide",
+      "title": "Understanding Credit Utilization: The 30% Rule",
+      "rationale": "Based on your financial profile (high utilization), because your credit card utilization is above 50%, your credit utilization is 75%.",
+      "type": "article",
+      "url": "/content/credit-utilization-guide"
+    }
+  ],
+  "generated_at": "2025-11-06T12:00:00Z",
+  "persona": "high_utilization"
+}
+```
+
+#### Approve Recommendation
+```bash
+curl -X POST http://localhost:8000/recommendations/{rec_id}/approve \
+  -H "Content-Type: application/json" \
+  -d '{"approved": true, "reason": "Looks good"}'
+```
+
+#### Mark Recommendation as Viewed
+```bash
+curl http://localhost:8000/recommendations/{rec_id}/view
+```
+
+#### Health Check
+```bash
+curl http://localhost:8000/health
+```
 
 ### Beta Testing Notes
 
@@ -320,3 +386,35 @@ spend-sense/
 - Focus on API functionality and operator dashboard
 - Use synthetic data only (no real financial data)
 - Test with 50-100 synthetic users for performance validation
+
+## Limitations
+
+This is an MVP implementation with the following limitations:
+
+### Data & Integration
+- **Synthetic data only**: No real Plaid or financial data provider integration
+- **No real-time updates**: Data is batch-processed, not real-time
+- **Limited user scale**: Designed for 50-100 users, not production scale
+
+### Security & Authentication
+- **No authentication**: User ID tracking only, no login system
+- **No encryption**: Data stored in plain SQLite database
+- **Local only**: Not suitable for production deployment without security hardening
+
+### Functionality
+- **Simplified eligibility**: Missing real credit score checks (uses synthetic data)
+- **Limited content catalog**: 20+ items vs. production needs 100+
+- **No A/B testing**: Cannot test content variations
+- **No personalization history**: Recommendations don't learn from user feedback
+
+### Infrastructure
+- **Single server**: Monolithic deployment, not horizontally scalable
+- **SQLite database**: Limited concurrent writes, not production-grade
+- **No monitoring**: Basic logging only, no APM or alerting
+
+### Compliance
+- **No SOC 2**: Not audited for security compliance
+- **No data encryption**: Financial data not encrypted at rest
+- **No GDPR compliance**: Missing data deletion and portability features
+
+**Production Readiness**: This MVP is suitable for beta testing with trusted users only. Production deployment requires addressing all limitations above.

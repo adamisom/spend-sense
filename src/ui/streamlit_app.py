@@ -14,6 +14,7 @@ sys.path.append(str(project_root))
 
 from src.db.connection import database_transaction
 from src.ui.pages.user_analytics import render_user_analytics
+from src.ui.pages.user_view import render_user_view
 from loguru import logger
 
 # Configure Streamlit page
@@ -126,7 +127,7 @@ def render_sidebar():
     st.sidebar.subheader("📊 Navigation")
     page = st.sidebar.selectbox(
         "Select View",
-        ["System Overview", "User Analytics", "Recommendation Engine", 
+        ["User View", "System Overview", "User Analytics", "Recommendation Engine", 
          "Data Quality", "Performance Metrics", "System Logs"]
     )
     
@@ -255,7 +256,9 @@ def main():
     selected_page = render_sidebar()
     
     # Route to selected page
-    if selected_page == "System Overview":
+    if selected_page == "User View":
+        render_user_view()
+    elif selected_page == "System Overview":
         render_system_overview()
     elif selected_page == "User Analytics":
         render_user_analytics()

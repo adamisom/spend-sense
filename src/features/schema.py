@@ -29,6 +29,13 @@ class UserSignals(BaseModel):
     monthly_savings_inflow: float = Field(0.0, description="Average monthly savings deposits")
     emergency_fund_months: Optional[float] = Field(None, ge=0.0, description="Months of expenses covered")
     
+    # Bank fee signals (NEW - for Fee Fighter persona)
+    monthly_bank_fees: float = Field(0.0, ge=0.0, description="Total monthly bank fees (overdraft, ATM, maintenance)")
+    bank_fee_count: int = Field(0, ge=0, description="Number of bank fee transactions in period")
+    has_overdraft_fees: bool = Field(False, description="True if overdraft fees detected")
+    has_atm_fees: bool = Field(False, description="True if ATM fees detected")
+    has_maintenance_fees: bool = Field(False, description="True if account maintenance fees detected")
+    
     # Data quality flags
     insufficient_data: bool = Field(False, description="True if below minimum thresholds")
     data_quality_score: float = Field(1.0, ge=0.0, le=1.0, description="Confidence in signals (0.0-1.0)")

@@ -75,9 +75,36 @@ personas:
       - "usage_tracking"
     why_priority_3: "Cost optimization opportunity, but not urgent"
     
+  fee_fighter:
+    name: "Fee Fighter"
+    priority: 3  # Between subscription-heavy (3) and savings-builder (4)
+    description: "Users incurring excessive bank fees that could be avoided"
+    criteria:
+      - field: "monthly_bank_fees"
+        operator: ">="
+        value: 20.0
+        description: "Monthly bank fees $20 or more"
+      - field: "has_overdraft_fees"
+        operator: "=="
+        value: true
+        combinator: "OR"
+        description: "Has overdraft fees"
+      - field: "bank_fee_count"
+        operator: ">="
+        value: 3
+        combinator: "OR"
+        description: "Three or more fee transactions"
+    focus_areas:
+      - "fee_avoidance"
+      - "overdraft_protection"
+      - "bank_account_optimization"
+      - "atm_network_education"
+      - "free_checking_alternatives"
+    why_priority_3: "Bank fees disproportionately affect lower-income users and are often avoidable with awareness and account optimization"
+    
   savings_builder:
     name: "Savings Builder"
-    priority: 4
+    priority: 5  # Updated from 4 (Fee Fighter is now 3, subscription_heavy is 3, so savings_builder moves to 5)
     description: "Users actively saving with good credit management"
     criteria:
       - field: "savings_growth_rate"

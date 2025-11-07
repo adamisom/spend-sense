@@ -39,6 +39,12 @@ class SignalTrigger(str, Enum):
     
     # Data quality triggers
     INSUFFICIENT_DATA = "insufficient_data"  # insufficient_data = true
+    
+    # Bank fee triggers (NEW)
+    HIGH_BANK_FEES = "high_bank_fees"  # monthly_bank_fees >= 20
+    HAS_OVERDRAFT_FEES = "has_overdraft_fees"  # has_overdraft_fees = true
+    HAS_ATM_FEES = "has_atm_fees"  # has_atm_fees = true
+    HAS_MAINTENANCE_FEES = "has_maintenance_fees"  # has_maintenance_fees = true
 
 class EligibilityRequirements(BaseModel):
     """Requirements for content eligibility."""
@@ -78,7 +84,7 @@ class ContentItem(BaseModel):
         """Ensure all personas are valid."""
         valid_personas = [
             'high_utilization', 'variable_income', 'subscription_heavy', 
-            'savings_builder', 'insufficient_data'
+            'savings_builder', 'fee_fighter', 'insufficient_data'
         ]
         for persona in v:
             if persona not in valid_personas:

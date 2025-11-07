@@ -303,6 +303,62 @@
       "eligibility": {},
       "priority_score": 5.0,
       "tags": ["savings", "challenge", "gamification"]
+    },
+    {
+      "content_id": "fee_avoidance_guide",
+      "type": "article",
+      "title": "How to Avoid Bank Fees: A Complete Guide",
+      "description": "Learn strategies to eliminate overdraft fees, ATM charges, and monthly maintenance fees",
+      "personas": ["fee_fighter"],
+      "signal_triggers": ["has_overdraft_fees", "has_atm_fees", "has_maintenance_fees"],
+      "url": "/content/fee-avoidance-guide",
+      "reading_time_minutes": 12,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 8.5,
+      "tags": ["fees", "banking", "savings"]
+    },
+    {
+      "content_id": "overdraft_protection_checklist",
+      "type": "checklist",
+      "title": "Overdraft Protection Setup Checklist",
+      "description": "5 steps to set up overdraft protection and avoid costly fees",
+      "personas": ["fee_fighter"],
+      "signal_triggers": ["has_overdraft_fees"],
+      "url": "/content/overdraft-protection-checklist",
+      "reading_time_minutes": 5,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 9.0,
+      "tags": ["overdraft", "protection", "checklist"]
+    },
+    {
+      "content_id": "free_checking_finder",
+      "type": "calculator",
+      "title": "Free Checking Account Finder",
+      "description": "Find banks in your area offering free checking accounts with no monthly fees",
+      "personas": ["fee_fighter"],
+      "signal_triggers": ["has_maintenance_fees"],
+      "url": "/content/free-checking-finder",
+      "reading_time_minutes": 8,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 7.5,
+      "tags": ["banking", "accounts", "fees"]
+    },
+    {
+      "content_id": "atm_network_guide",
+      "type": "article",
+      "title": "How to Avoid ATM Fees: Use Your Bank's Network",
+      "description": "Learn which ATMs are free and how to find them using your bank's mobile app",
+      "personas": ["fee_fighter"],
+      "signal_triggers": ["has_atm_fees"],
+      "url": "/content/atm-network-guide",
+      "reading_time_minutes": 6,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 7.0,
+      "tags": ["atm", "fees", "banking"]
     }
   ]
 }
