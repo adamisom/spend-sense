@@ -121,6 +121,49 @@ class TestSignalMapper:
         assert SignalTrigger.POSITIVE_SAVINGS in triggers
         assert SignalTrigger.NEGATIVE_SAVINGS_GROWTH in triggers
         assert SignalTrigger.LOW_EMERGENCY_FUND in triggers
+    
+    def test_bank_fee_triggers(self):
+        """Test bank fee-related triggers."""
+        signals = UserSignals(
+            monthly_bank_fees=25.0,  # >= 20.0
+            has_overdraft_fees=True,
+            has_atm_fees=True,
+            has_maintenance_fees=True,
+            data_quality_score=0.9
+        )
+        triggers = map_signals_to_triggers(signals)
+        
+        assert SignalTrigger.HIGH_BANK_FEES in triggers
+        assert SignalTrigger.HAS_OVERDRAFT_FEES in triggers
+        assert SignalTrigger.HAS_ATM_FEES in triggers
+        assert SignalTrigger.HAS_MAINTENANCE_FEES in triggers
+    
+    def test_bank_fee_threshold(self):
+        """Test bank fee threshold at exactly $20."""
+        signals_at = UserSignals(monthly_bank_fees=20.0, data_quality_score=0.9)
+        signals_below = UserSignals(monthly_bank_fees=19.99, data_quality_score=0.9)
+        
+        triggers_at = map_signals_to_triggers(signals_at)
+        triggers_below = map_signals_to_triggers(signals_below)
+        
+        assert SignalTrigger.HIGH_BANK_FEES in triggers_at
+        assert SignalTrigger.HIGH_BANK_FEES not in triggers_below
+    
+    def test_bank_fee_boolean_triggers(self):
+        """Test that boolean bank fee flags map correctly."""
+        signals = UserSignals(
+            monthly_bank_fees=15.0,  # Below threshold
+            has_overdraft_fees=True,  # Should trigger
+            has_atm_fees=False,
+            has_maintenance_fees=False,
+            data_quality_score=0.9
+        )
+        triggers = map_signals_to_triggers(signals)
+        
+        assert SignalTrigger.HIGH_BANK_FEES not in triggers  # Below $20
+        assert SignalTrigger.HAS_OVERDRAFT_FEES in triggers
+        assert SignalTrigger.HAS_ATM_FEES not in triggers
+        assert SignalTrigger.HAS_MAINTENANCE_FEES not in triggers
 
 class TestTriggerExplanations:
     """Test trigger explanation generation."""

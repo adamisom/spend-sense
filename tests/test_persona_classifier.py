@@ -183,4 +183,77 @@ class TestPersonaCriteriaEvaluation:
         matches, descriptions = evaluate_persona_criteria(signals, persona)
         assert matches is True
         assert len(descriptions) >= 1
+    
+    def test_fee_fighter_monthly_fees(self):
+        """Test Fee Fighter persona matches with monthly_bank_fees >= 20."""
+        signals = UserSignals(
+            monthly_bank_fees=25.0,  # >= 20.0
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        assert match.persona_id == "fee_fighter"
+        assert "Monthly bank fees" in " ".join(match.matched_criteria) or "bank fees" in " ".join(match.matched_criteria).lower()
+    
+    def test_fee_fighter_overdraft_fees(self):
+        """Test Fee Fighter persona matches with has_overdraft_fees (OR logic)."""
+        signals = UserSignals(
+            monthly_bank_fees=15.0,  # Below threshold
+            has_overdraft_fees=True,  # Matches via OR
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        assert match.persona_id == "fee_fighter"
+    
+    def test_fee_fighter_bank_fee_count(self):
+        """Test Fee Fighter persona matches with bank_fee_count >= 3 (OR logic)."""
+        signals = UserSignals(
+            monthly_bank_fees=10.0,  # Below threshold
+            has_overdraft_fees=False,
+            bank_fee_count=4,  # >= 3, matches via OR
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        assert match.persona_id == "fee_fighter"
+    
+    def test_fee_fighter_priority_tie_breaking(self):
+        """Test Fee Fighter priority (3) vs other personas."""
+        signals = UserSignals(
+            monthly_bank_fees=25.0,  # Matches fee_fighter (priority 3)
+            subscription_count=5,  # Matches subscription_heavy (priority 3)
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        # Both have priority 3, so confidence or first match determines winner
+        # At minimum, fee_fighter should be a valid match
+        assert match.persona_id in ["fee_fighter", "subscription_heavy"]
+    
+    def test_fee_fighter_vs_high_utilization_priority(self):
+        """Test Fee Fighter (priority 3) loses to high_utilization (priority 1)."""
+        signals = UserSignals(
+            credit_utilization_max=0.75,  # Matches high_utilization (priority 1)
+            monthly_bank_fees=25.0,  # Matches fee_fighter (priority 3)
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        # High utilization should win due to priority 1 < priority 3
+        assert match.persona_id == "high_utilization"
+    
+    def test_fee_fighter_multiple_criteria(self):
+        """Test Fee Fighter matches when multiple OR criteria match."""
+        signals = UserSignals(
+            monthly_bank_fees=25.0,  # Matches
+            has_overdraft_fees=True,  # Also matches
+            bank_fee_count=5,  # Also matches
+            data_quality_score=0.9
+        )
+        match = classify_persona(signals)
+        assert match is not None
+        assert match.persona_id == "fee_fighter"
+        # Should have multiple matched criteria
+        assert len(match.matched_criteria) >= 1
 
