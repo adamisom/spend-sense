@@ -113,6 +113,17 @@ brew install docker colima
 colima start
 ```
 
+**❌ "docker-compose: No such file or directory" or "make: docker-compose: No such file or directory"**
+
+```bash
+# Solution: Install docker-compose separately
+# Note: Some Docker installations (especially Colima) don't include docker-compose
+brew install docker-compose
+
+# Verify installation
+docker-compose --version
+```
+
 **❌ Container won't start or build fails**
 
 ```bash

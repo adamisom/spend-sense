@@ -1,7 +1,7 @@
-# Testing Guide: Phases 1.1-1.2 Foundation
+# Testing Guide: Phases 1.1-1.3 Foundation
 
 ## 🎯 Purpose
-This guide provides step-by-step instructions to validate that Phases 1.1 (Project Foundation) and 1.2 (Database Foundation) are complete and working correctly before proceeding to Phase 1.3.
+This guide provides step-by-step instructions to validate that Phases 1.1 (Project Foundation), 1.2 (Database Foundation), and 1.3 (Synthetic Data Generation) are complete and working correctly before proceeding to Phase 1.4 (Data Loading).
 
 ---
 
@@ -168,9 +168,9 @@ exit
 
 ---
 
-### Step 4: Test Synthetic Data Generation (Phase 1.3.1-1.3.2)
+### Step 4: Test Synthetic Data Generation (Phase 1.3.1-1.3.4)
 
-**What it tests**: User profiles, account generation, CSV output
+**What it tests**: User profiles, account generation, transaction generation, liability generation, CSV output
 
 **Command**:
 ```bash
@@ -181,6 +181,11 @@ python -m src.ingest.data_generator --users 5 --output /tmp/test_data
 ls -la /tmp/test_data/
 head -5 /tmp/test_data/users.csv
 head -5 /tmp/test_data/accounts.csv
+head -5 /tmp/test_data/transactions.csv
+head -5 /tmp/test_data/liabilities.csv
+
+# Check data volumes
+wc -l /tmp/test_data/*.csv
 
 # Clean up
 rm -rf /tmp/test_data
@@ -189,21 +194,28 @@ exit
 
 **Expected Output**:
 ```
-✅ Generated data for 5 users
-📊 Generated 10+ accounts
+✅ Generated complete dataset:
+   👥 5 users
+   🏦 10+ accounts
+   💳 100+ transactions
+   📄 5+ liabilities
 📁 Output directory: /tmp/test_data
 
 # Files should exist:
 users.csv
 accounts.csv
+transactions.csv
+liabilities.csv
 
 # CSV should have proper headers and data
 ```
 
 **✅ Pass Criteria**: 
-- Both CSV files created
+- All 4 CSV files created
 - Users CSV has 5+ rows
 - Accounts CSV has 10+ rows (2+ accounts per user)
+- Transactions CSV has 100+ rows (realistic transaction history)
+- Liabilities CSV has records matching credit card accounts
 - Proper CSV structure with headers
 
 ---
@@ -266,7 +278,7 @@ exit
 
 ## ✅ Success Criteria Summary
 
-Before moving to Phase 1.3, ensure:
+Before moving to Phase 1.4, ensure:
 
 1. **Project Structure** ✅
    - All directories exist
@@ -287,7 +299,9 @@ Before moving to Phase 1.3, ensure:
 4. **Data Generation** ✅
    - User profiles generate correctly
    - Accounts generate correctly
-   - CSV files output correctly
+   - Transactions generate correctly (income, subscriptions, regular spending, savings, payments)
+   - Liabilities generate correctly (APR, payments, overdue status)
+   - All 4 CSV files output correctly
 
 5. **Integration** ✅
    - All components work together
@@ -316,9 +330,9 @@ Before moving to Phase 1.3, ensure:
 
 Once all tests pass:
 
-1. ✅ **Phase 1.1-1.2 Complete** - Foundation is solid
-2. ➡️ **Proceed to Phase 1.3** - Complete data generation (transactions, liabilities)
-3. ➡️ **Then Phase 1.4** - Data loading pipeline
+1. ✅ **Phase 1.1-1.3 Complete** - Foundation and data generation are solid
+2. ➡️ **Proceed to Phase 1.4** - Data loading pipeline (load CSV files into database)
+3. ➡️ **Then Phase 2** - Signal detection and persona assignment
 
-See `SpendSense-Implementation-Checklist.md` for Phase 1.3 tasks.
+See `SpendSense-Implementation-Checklist.md` for Phase 1.4 and Phase 2 tasks.
 

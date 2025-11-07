@@ -75,9 +75,9 @@ def database_transaction(db_path: str = "db/spend_sense.db"):
                 conn = None
             raise DatabaseError("transaction", str(e))
     
-    finally:
-        if conn:
-            conn.close()
+    # Ensure connection is closed if we somehow exit the loop without success
+    if conn:
+        conn.close()
 
 def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_sense.db"):
     """Initialize database from schema file."""

@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   spendsense-app:
@@ -57,6 +56,14 @@ services:
     extends: spendsense-app
     container_name: spendsense-init
     profiles: ["init"]
+    volumes:
+      # Override parent volumes to include db directory for schema.sql access
+      - ./src:/app/src:cached
+      - ./tests:/app/tests:cached
+      - ./scripts:/app/scripts:cached
+      - ./data:/app/data:delegated
+      - ./db:/app/db:cached  # Mount db directory to access schema.sql
+      - spendsense-logs:/app/logs
     command: >
       sh -c "
         python -c 'from src.db.connection import initialize_db; initialize_db()' &&
