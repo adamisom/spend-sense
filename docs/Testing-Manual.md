@@ -91,20 +91,81 @@ make down && make up
 **Prerequisites**:
 - Docker daemon running (`colima start`)
 - Container running (`make up`)
-- Phase 1 data loaded (optional, for full integration)
 
-**Command**:
+### Test 1: Persona Classification
+
 ```bash
 # Ensure container is running
 make up
-
-# Test recommendation generation
 make shell
+
+# Test persona classification
 python -c "
+from src.features.schema import UserSignals
+from src.personas.persona_classifier import classify_persona
+
+# Test high utilization persona
+signals = UserSignals(credit_utilization_max=0.75, data_quality_score=0.9)
+match = classify_persona(signals)
+print(f'✅ Persona: {match.persona_name} (confidence: {match.confidence:.2f})')
+print(f'   Matched criteria: {match.matched_criteria}')
+"
+
+# Test subscription heavy persona
+python -c "
+from src.features.schema import UserSignals
+from src.personas.persona_classifier import classify_persona
+
+signals = UserSignals(subscription_count=5, monthly_subscription_spend=100.0, data_quality_score=0.9)
+match = classify_persona(signals)
+print(f'✅ Persona: {match.persona_name}')
+"
+
+exit
+```
+
+**Expected**: Persona correctly classified based on signals
+
+### Test 2: Signal to Trigger Mapping
+
+```bash
+make shell
+
+python -c "
+from src.features.schema import UserSignals
+from src.recommend.signal_mapper import map_signals_to_triggers, explain_triggers_for_user
+
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=5,
+    monthly_subscription_spend=100.0,
+    data_quality_score=0.9
+)
+
+triggers = map_signals_to_triggers(signals)
+explanations = explain_triggers_for_user(triggers)
+
+print(f'✅ Mapped {len(triggers)} triggers:')
+for i, (trigger, explanation) in enumerate(zip(triggers, explanations), 1):
+    print(f'   {i}. {trigger.value}: {explanation}')
+"
+
+exit
+```
+
+**Expected**: Signals correctly mapped to triggers with explanations
+
+### Test 3: Recommendation Generation
+
+```bash
+make shell
+
+# Create a test script file
+cat > /tmp/test_recommendations.py << 'EOF'
 from src.features.schema import UserSignals
 from src.recommend.recommendation_engine import RecommendationEngine
 from src.db.connection import initialize_db, save_user_signals
-import json
 
 # Initialize database
 initialize_db()
@@ -125,23 +186,17 @@ save_user_signals('test_user', '180d', signals.model_dump())
 engine = RecommendationEngine()
 recommendations = engine.generate_recommendations('test_user', signals)
 
-print(f'✅ Generated {len(recommendations)} recommendations')
-for rec in recommendations[:3]:
-    print(f'  - {rec.title}: {rec.rationale}')
-"
+print(f'\n✅ Generated {len(recommendations)} recommendations\n')
+for i, rec in enumerate(recommendations[:5], 1):
+    print(f'{i}. {rec.title}')
+    print(f'   Type: {rec.type}')
+    print(f'   Rationale: {rec.rationale}')
+    print(f'   Score: {rec.priority_score:.2f}')
+    print()
+EOF
 
-# Test persona classification
-python -c "
-from src.features.schema import UserSignals
-from src.personas.persona_classifier import classify_persona
-
-signals = UserSignals(credit_utilization_max=0.75, data_quality_score=0.9)
-match = classify_persona(signals)
-print(f'✅ Persona: {match.persona_name} (confidence: {match.confidence:.2f})')
-"
-
-# Test API endpoint (if API is running)
-# curl http://localhost:8000/recommendations/test_user
+python /tmp/test_recommendations.py
+rm /tmp/test_recommendations.py
 
 exit
 ```
@@ -149,18 +204,77 @@ exit
 **Expected Output**:
 ```
 ✅ Generated 3-5 recommendations
-  - Understanding Credit Utilization: Based on your financial profile (high utilization), because your credit card utilization is above 50%, your credit utilization is 75%.
-  - 5-Step Debt Paydown Strategy: Based on your financial profile (high utilization), because you're paying interest charges on credit cards.
-  - Subscription Spending Tracker: Based on your financial profile (subscription-heavy), because you have 5 or more active subscriptions.
 
-✅ Persona: High Utilization (confidence: 0.80)
+1. Understanding Credit Utilization: The 30% Rule
+   Type: article
+   Rationale: Based on your financial profile (high utilization), because your credit card utilization is above 50%, your credit utilization is 75%.
+   Score: 11.50
+
+2. 5-Step Debt Paydown Strategy
+   Type: checklist
+   Rationale: Based on your financial profile (high utilization), because you're paying interest charges on credit cards.
+   Score: 10.50
 ```
 
+### Test 4: API Endpoints
+
+```bash
+# Start API server (in container)
+make shell
+uvicorn src.api.routes:app --host 0.0.0.0 --port 8000 &
+sleep 2
+
+# In another terminal (on host), test API
+curl http://localhost:8000/health
+curl http://localhost:8000/profile/test_user
+curl http://localhost:8000/recommendations/test_user | jq
+
+# Or test from within container
+curl http://localhost:8000/recommendations/test_user
+```
+
+**Expected**: API returns JSON with recommendations and rationales
+
+### Test 5: Guardrails
+
+```bash
+make shell
+
+python -c "
+from src.guardrails.guardrails import Guardrails
+from src.recommend.content_schema import ContentItem, ContentType
+
+guardrails = Guardrails()
+
+# Test content safety
+try:
+    content = ContentItem(
+        content_id='test',
+        type=ContentType.ARTICLE,
+        title='You are stupid with money',
+        description='This is a test description for validation',
+        personas=['high_utilization'],
+        url='/test',
+        reading_time_minutes=10
+    )
+    guardrails.validate_content_safety(content)
+    print('❌ Should have caught prohibited pattern')
+except Exception as e:
+    print(f'✅ Guardrail caught unsafe content: {e}')
+"
+
+exit
+```
+
+**Expected**: Guardrails block unsafe content
+
 **✅ Pass Criteria**:
-- Recommendations generated successfully
-- Each recommendation has a rationale
 - Persona classification works correctly
-- No errors during generation
+- Signal mapping produces correct triggers
+- Recommendations generated with rationales
+- API endpoints return valid JSON
+- Guardrails block unsafe content
+- No errors throughout the pipeline
 
 ---
 
