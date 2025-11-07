@@ -236,6 +236,7 @@ liabilities.csv
 **What it tests**: Loading CSV files into database, data integrity validation
 
 **Command**:
+
 ```bash
 make shell
 # First generate test data
@@ -256,6 +257,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 ✅ Data Loading Summary:
    users: 10 records
@@ -268,7 +270,8 @@ exit
 ✅ All data integrity checks passed
 ```
 
-**✅ Pass Criteria**: 
+**✅ Pass Criteria**:
+
 - All 4 tables loaded successfully
 - Record counts match CSV files
 - Data integrity validation passes
@@ -281,6 +284,7 @@ exit
 **What it tests**: Complete integration of all Phase 1.1-1.4 components
 
 **Command**:
+
 ```bash
 make shell
 python scripts/test_phase1.py
@@ -288,6 +292,7 @@ exit
 ```
 
 **Expected Output**:
+
 ```
 🚀 Starting Phase 1 Validation Tests
 
