@@ -6,6 +6,9 @@ import tempfile
 import os
 from pathlib import Path
 
+# Configure pytest-asyncio
+pytest_plugins = ('pytest_asyncio',)
+
 from src.features.schema import UserSignals
 from src.recommend.content_schema import ContentItem, ContentType, ContentCatalog, SignalTrigger
 

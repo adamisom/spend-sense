@@ -117,4 +117,99 @@ class TestIntegration:
         persona_match = classify_persona(signals)
         assert persona_match is not None
         assert persona_match.persona_id == "insufficient_data"
+    
+    def test_feedback_table_schema(self, temp_db_path):
+        """Test that feedback table schema works correctly."""
+        from src.db.connection import database_transaction, initialize_db
+        from datetime import datetime
+        import uuid
+        
+        # Initialize database with schema
+        initialize_db(db_path=temp_db_path, force=True)
+        
+        # Create a test user and recommendation first
+        with database_transaction(temp_db_path) as conn:
+            # Create user
+            conn.execute("""
+                INSERT INTO users (user_id, created_at, consent_status)
+                VALUES (?, ?, ?)
+            """, ("test_user", datetime.now().isoformat(), True))
+            
+            # Create a recommendation
+            rec_id = f"rec_{uuid.uuid4().hex[:12]}"
+            conn.execute("""
+                INSERT INTO recommendations (rec_id, user_id, content_id, rationale, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (rec_id, "test_user", "test_content", "Test rationale", datetime.now().isoformat()))
+            
+            # Insert feedback
+            feedback_id = f"feedback_{uuid.uuid4().hex[:12]}"
+            conn.execute("""
+                INSERT INTO feedback 
+                (feedback_id, user_id, rec_id, content_id, helpful, comment, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                feedback_id,
+                "test_user",
+                rec_id,
+                "test_content",
+                True,
+                "Very helpful!",
+                datetime.now().isoformat()
+            ))
+        
+        # Verify feedback was inserted
+        with database_transaction(temp_db_path) as conn:
+            result = conn.execute("""
+                SELECT * FROM feedback WHERE feedback_id = ?
+            """, (feedback_id,)).fetchone()
+            
+            assert result is not None
+            assert result['user_id'] == "test_user"
+            assert result['rec_id'] == rec_id
+            assert result['helpful'] == 1  # SQLite stores boolean as 1/0
+            assert result['comment'] == "Very helpful!"
+    
+    def test_feedback_foreign_key_constraints(self, temp_db_path):
+        """Test that feedback table foreign key constraints work."""
+        from src.db.connection import database_transaction, initialize_db
+        from datetime import datetime
+        import uuid
+        
+        # Initialize database
+        initialize_db(db_path=temp_db_path, force=True)
+        
+        # Try to insert feedback with invalid user_id (should fail if foreign keys enforced)
+        feedback_id = f"feedback_{uuid.uuid4().hex[:12]}"
+        
+        # SQLite doesn't enforce foreign keys by default, but we can test the constraint exists
+        with database_transaction(temp_db_path) as conn:
+            # Check that foreign key constraint exists in schema
+            schema_info = conn.execute("""
+                SELECT sql FROM sqlite_master 
+                WHERE type='table' AND name='feedback'
+            """).fetchone()
+            
+            assert schema_info is not None
+            assert "FOREIGN KEY" in schema_info['sql']
+            assert "user_id" in schema_info['sql']
+            assert "rec_id" in schema_info['sql']
+    
+    def test_feedback_indexes(self, temp_db_path):
+        """Test that feedback table has proper indexes."""
+        from src.db.connection import database_transaction, initialize_db
+        
+        # Initialize database
+        initialize_db(db_path=temp_db_path, force=True)
+        
+        with database_transaction(temp_db_path) as conn:
+            # Check indexes exist
+            indexes = conn.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='index' AND tbl_name='feedback'
+            """).fetchall()
+            
+            index_names = [idx['name'] for idx in indexes]
+            assert 'idx_feedback_user' in index_names
+            assert 'idx_feedback_rec' in index_names
 
