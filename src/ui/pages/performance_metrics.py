@@ -80,6 +80,63 @@ def render_performance_metrics():
         except Exception as e:
             st.warning(f"Could not load relevance metrics: {e}")
         
+        # Fairness metrics
+        st.subheader("⚖️ Fairness Metrics")
+        try:
+            from src.evaluation.metrics import calculate_fairness_metrics
+            
+            fairness_metrics = calculate_fairness_metrics()
+            
+            if not fairness_metrics.get('demographic_data_available', False):
+                st.info("""
+                **Demographic data not available in current schema.**
+                
+                Fairness metrics framework is ready for when demographic data is added to the users table.
+                The framework will calculate:
+                - Recommendation rates by demographic group
+                - Parity metrics (coefficient of variation)
+                - Disparity detection (>10% difference from average)
+                """)
+                
+                if 'framework' in fairness_metrics:
+                    with st.expander("View Framework Details"):
+                        st.json(fairness_metrics['framework'])
+            else:
+                # Display fairness metrics
+                col1, col2 = st.columns(2)
+                with col1:
+                    parity_cv = fairness_metrics.get('parity_metric', {}).get('coefficient_of_variation', 0.0)
+                    st.metric("Parity (CV)", f"{parity_cv:.1f}%")
+                with col2:
+                    disparities = fairness_metrics.get('disparities', [])
+                    st.metric("Disparities Detected", len(disparities))
+                
+                # Recommendation rates by group
+                if 'recommendation_rates_by_group' in fairness_metrics:
+                    rates_df = pd.DataFrame([
+                        {
+                            'Group': group,
+                            'Recommendation Rate': data['recommendation_rate'],
+                            'Total Users': data['total_users']
+                        }
+                        for group, data in fairness_metrics['recommendation_rates_by_group'].items()
+                    ])
+                    st.dataframe(rates_df, use_container_width=True)
+                    
+                    # Bar chart
+                    st.bar_chart(rates_df.set_index('Group')['Recommendation Rate'])
+                
+                # Disparities
+                if disparities:
+                    st.warning(f"⚠️ {len(disparities)} demographic groups show significant disparities")
+                    disparities_df = pd.DataFrame(disparities)
+                    st.dataframe(disparities_df, use_container_width=True)
+                else:
+                    st.success("✅ No significant disparities detected")
+                    
+        except Exception as e:
+            st.warning(f"Could not load fairness metrics: {e}")
+        
     except Exception as e:
         logger.error(f"Error loading performance metrics: {e}")
         st.error(f"Error: {str(e)}")

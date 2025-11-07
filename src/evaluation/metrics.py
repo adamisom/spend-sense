@@ -581,6 +581,134 @@ def calculate_aggregate_relevance() -> dict:
             'total_recommendations': 0
         }
 
+def calculate_fairness_metrics() -> dict:
+    """Calculate fairness metrics (demographic parity in recommendations).
+    
+    Note: Requires demographic data in user records. If not available,
+    returns framework for future implementation.
+    
+    Returns:
+        Dictionary with fairness metrics
+    """
+    try:
+        from src.db.connection import database_transaction
+        
+        with database_transaction() as conn:
+            # Check if users table has demographic columns
+            # In MVP, we may not have demographics - check schema
+            schema_info = conn.execute("""
+                SELECT sql FROM sqlite_master 
+                WHERE type='table' AND name='users'
+            """).fetchone()
+            
+            has_demographics = False
+            if schema_info and schema_info[0]:
+                sql = schema_info[0].lower()
+                has_demographics = any(
+                    col in sql for col in ['age', 'gender', 'income_level', 'location', 'demographic_group']
+                )
+            
+            if not has_demographics:
+                return {
+                    'demographic_data_available': False,
+                    'message': 'Demographic data not available in current schema. Framework ready for when demographics are added.',
+                    'framework': {
+                        'metrics': [
+                            'Recommendation rate by demographic group',
+                            'Content type distribution by group',
+                            'Persona assignment parity',
+                            'Average recommendation relevance by group'
+                        ],
+                        'implementation_notes': [
+                            'Add demographic columns to users table',
+                            'Calculate recommendation rates per group',
+                            'Compare rates across groups (should be similar)',
+                            'Flag significant disparities (>10% difference)'
+                        ]
+                    }
+                }
+            
+            # If demographics exist, calculate parity
+            # Example implementation (adjust based on actual schema):
+            
+            # Get recommendation rates by demographic group
+            results = conn.execute("""
+                SELECT 
+                    u.demographic_group,  -- e.g., age_range, income_level
+                    COUNT(DISTINCT u.user_id) as total_users,
+                    COUNT(DISTINCT r.user_id) as users_with_recs
+                FROM users u
+                LEFT JOIN recommendations r ON u.user_id = r.user_id
+                GROUP BY u.demographic_group
+            """).fetchall()
+            
+            if not results:
+                return {
+                    'demographic_data_available': True,
+                    'message': 'Demographic data available but no users found',
+                    'metrics': {}
+                }
+            
+            # Calculate recommendation rates
+            recommendation_rates = {}
+            for row in results:
+                group = row['demographic_group']
+                total = row['total_users']
+                with_recs = row['users_with_recs']
+                rate = (with_recs / total * 100) if total > 0 else 0.0
+                recommendation_rates[group] = {
+                    'total_users': total,
+                    'users_with_recommendations': with_recs,
+                    'recommendation_rate': rate
+                }
+            
+            # Calculate parity (coefficient of variation)
+            rates = [r['recommendation_rate'] for r in recommendation_rates.values()]
+            if rates:
+                avg_rate = sum(rates) / len(rates)
+                variance = sum((r - avg_rate) ** 2 for r in rates) / len(rates)
+                std_dev = variance ** 0.5
+                cv = (std_dev / avg_rate * 100) if avg_rate > 0 else 0.0
+            else:
+                cv = 0.0
+            
+            # Flag disparities (>10% difference from average)
+            disparities = []
+            if rates:
+                avg_rate = sum(rates) / len(rates)
+                for group, data in recommendation_rates.items():
+                    diff = abs(data['recommendation_rate'] - avg_rate)
+                    if diff > 10.0:  # More than 10% difference
+                        disparities.append({
+                            'group': group,
+                            'rate': data['recommendation_rate'],
+                            'difference': diff,
+                            'status': 'disparity_detected'
+                        })
+            
+            return {
+                'demographic_data_available': True,
+                'recommendation_rates_by_group': recommendation_rates,
+                'parity_metric': {
+                    'coefficient_of_variation': cv,
+                    'interpretation': 'Lower is better (0 = perfect parity)'
+                },
+                'disparities': disparities,
+                'summary': {
+                    'total_groups': len(recommendation_rates),
+                    'groups_with_disparities': len(disparities),
+                    'parity_status': 'good' if cv < 10.0 else 'needs_review'
+                }
+            }
+            
+    except Exception as e:
+        logger.error(f"Error calculating fairness metrics: {e}")
+        return {
+            'demographic_data_available': False,
+            'error': str(e),
+            'message': 'Error calculating fairness metrics'
+        }
+
 if __name__ == "__main__":
     run_evaluation_cli()
 
