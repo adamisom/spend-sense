@@ -1,6 +1,79 @@
 # SpendSense - Explainable Financial Education Platform
 
-## ⚡ Super Fast Development with Docker
+## 📖 Overview
+
+**SpendSense** is an explainable financial education platform that analyzes transaction data to detect behavioral patterns, assign financial personas, and deliver personalized recommendations with clear "because" rationales.
+
+### Key Features
+
+- **Behavioral Signal Detection**: Automatically detects credit utilization, subscription spending, income patterns, and savings behavior from transaction data
+- **Persona Classification**: Assigns users to one of 5 financial personas (High Utilization, Variable Income, Subscription-Heavy, Savings Builder, Fee Fighter)
+- **Personalized Recommendations**: Generates 3-5 personalized financial education recommendations with explainable rationales
+- **Operator Dashboard**: Streamlit-based dashboard for monitoring system health, user analytics, and recommendation quality
+- **End-User Interface**: User-friendly view for displaying personalized recommendations
+- **Comprehensive Evaluation**: Metrics for coverage, quality, performance, fairness, and relevance
+
+### Core Value Proposition
+
+Every recommendation includes a clear rationale explaining **why** it was made, using the user's actual financial data. For example: *"Because your credit card utilization is 75% (above the recommended 30%), reducing it could improve your credit score."*
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **macOS** (tested on macOS, Linux/WSL should work)
+- **Docker** via Colima (lightweight Docker alternative)
+- **Make** (comes with Xcode Command Line Tools)
+
+### Installation
+
+```bash
+# 1. Install dependencies (one-time)
+brew install docker colima docker-compose
+xcode-select --install  # If make command not found
+
+# 2. Start Docker daemon (first command every session)
+colima start
+
+# 3. Clone and initialize project
+git clone <repository-url>
+cd spend-sense
+make init  # First-time setup (builds containers + initializes database)
+```
+
+### Daily Usage
+
+```bash
+# Start development environment
+make up
+
+# Access container shell
+make shell
+
+# Generate test data
+make data  # or: python -m src.ingest.data_generator --users 50
+
+# Run tests
+make test
+
+# Start API server (in container)
+uvicorn src.api.routes:app --host 0.0.0.0 --port 8000 --reload
+
+# Start operator dashboard (in another terminal)
+make shell
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+```
+
+**Access Points**:
+- **API**: http://localhost:8000 (docs at http://localhost:8000/docs)
+- **Operator Dashboard**: http://localhost:8501
+- **User View**: http://localhost:8501 → Select "User View" from sidebar
+
+---
+
+## ⚡ Development Commands
 
 ### 🚀 Lightning Quick Start (30 seconds)
 
@@ -15,106 +88,36 @@ make init
 make up && make shell
 ```
 
-### ⭐ Most Common Commands (Use These 90% of the Time)
+### Most Common Commands
 
 ```bash
 make up         # Start development container (run first!)
-make shell      # Access container shell (instant)
-                #   To exit: type 'exit' or press Ctrl+D
-make test       # Run all tests
-make quick-run  # Quick validation (fastest)  
-make data       # Generate synthetic data
-make logs       # View container logs
-make down       # Stop container (when done or before config changes)
+make shell      # Access container shell
+make test       # Run all tests (135+ tests)
+make data       # Generate synthetic data (50 users)
+make down       # Stop container
 ```
 
-### 🔥 Ultra-Fast Iteration Loop
+### Development Workflow
 
-```bash
-# Start environment (once per session)
-make up
+1. **Start environment**: `make up`
+2. **Access shell**: `make shell`
+3. **Edit code** in your IDE (changes are instantly reflected)
+4. **Test changes**: `python -m src.ingest.data_generator --users 5`
+5. **Run tests**: `make test` or `pytest tests/ -v`
 
-# Inner loop (repeat constantly):
-make shell
-# Edit code in your IDE
-python -m src.ingest.data_generator --users 5  # Test changes
-exit  # Exit shell (or Ctrl+D)
-# Repeat
-```
+**Note**: Code changes are instantly reflected - no rebuild needed! The container mounts your source code as a volume.
 
-### 🧪 Development Tips for Speed
+---
 
-**Hot Reloading**: Code changes are **instantly** reflected - no rebuild needed!
+## 📚 Documentation
 
-**Quick Tests**: Test specific modules without full suite:
+- **Operator Dashboard Guide**: `docs/OPERATOR_DASHBOARD_GUIDE.md` - Complete guide for using the Streamlit dashboard
+- **Testing Manual**: `docs/Testing-Manual.md` - Manual testing procedures and quick smoke test
+- **Architecture Guide**: `docs/Architecture-Guide.md` - System architecture and design decisions
+- **Implementation Guides**: `docs/misc/Implementation-Phase*.md` - Phase-by-phase implementation checklists
 
-```bash
-make quick-test FILE=test_features.py
-```
-
-**Database Persistence**: Your data survives container restarts:
-
-```bash
-make down && make up  # Data is still there!
-```
-
-**Container Management**:
-```bash
-make up          # Start container (required before make shell)
-make shell       # Access container shell
-                 # To exit shell: type 'exit' or press Ctrl+D
-                 # Note: Exiting shell doesn't stop the container
-make down        # Stop container (clean shutdown)
-make down && make up  # Restart container (use after docker-compose.yml changes)
-docker-compose restart  # Quick restart without stopping (faster)
-```
-
-**IDE Integration**: Edit code normally - container picks up changes immediately.
-
-**Reset Everything Fast**:
-
-```bash
-make reset-db  # Fresh database in 10 seconds
-```
-
-### 🔧 Advanced Development Workflow
-
-```bash
-# Start API server with hot reload
-make up && make shell
-uvicorn src.api.routes:app --host 0.0.0.0 --reload
-
-# In another terminal, start dashboard
-make shell
-streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
-
-# In another terminal, run tests continuously
-make shell  
-pytest tests/ -v --watch
-```
-
-**Streamlit Process Management:**
-
-```bash
-# Kill all Streamlit processes on host
-pkill -f streamlit
-
-# Kill process using port 8501
-lsof -ti:8501 | xargs kill -9
-
-# Kill Streamlit in Docker container (if needed)
-docker-compose exec spendsense-app killall streamlit
-# or find and kill manually
-docker-compose exec spendsense-app ps aux | grep streamlit
-```
-
-### 🎯 Performance Optimizations
-
-- **Multi-stage Docker builds** - Only dependencies cached, not source code
-- **Volume caching** - `cached` and `delegated` modes for macOS
-- **Health checks** - Quick validation that environment is ready
-- **Persistent volumes** - Database and logs survive restarts
-- **Exclude **pycache**** - No Python bytecode sync slowdown
+---
 
 ## 🆘 Troubleshooting
 
@@ -212,76 +215,35 @@ lsof -ti:8501 | xargs kill -9
 docker-compose exec spendsense-app killall streamlit
 ```
 
-## Local Development (Alternative)
+---
 
-1. `python -m venv venv && source venv/bin/activate`
-2. `pip install -r requirements.txt`
-3. `python -m src.db.connection initialize`
-4. `python -m src.ingest.data_generator --users 50`
-
-## 🔨 Build, Test & Lint Commands
+## 🔨 Build, Test & Development
 
 ### Building
 
-**Via Makefile (Docker):**
-
 ```bash
-make build      # Build Docker containers (forced rebuild, no cache)
-make init       # First-time setup (builds containers + initializes database)
-```
-
-**Docker Compose directly:**
-
-```bash
-docker compose build              # Build containers
-docker compose build --no-cache   # Force rebuild without cache
+make build      # Build Docker containers
+make init       # First-time setup (builds + initializes database)
 ```
 
 ### Testing
 
-**Via Makefile (Docker):**
-
 ```bash
-make test                    # Run full test suite with coverage
-make quick-test FILE=test_features.py  # Run a single test file
+make test                    # Run full test suite (135+ tests)
+make quick-test FILE=test_features.py  # Run single test file
+pytest tests/ -v            # Run all tests with verbose output
+pytest tests/ --cov=src     # Run with coverage report
 ```
 
-**Direct (local or in container):**
-
-```bash
-pytest tests/ -v                                    # Run all tests
-pytest tests/ --cov=src --cov-report=html          # Run with coverage report
-pytest tests/ -v --tb=short                        # Short traceback format
-```
-
-**Validation scripts:**
+### Validation
 
 ```bash
 python scripts/validate_implementation.py  # Validates project structure
-python scripts/test_phase1.py              # Phase 1 validation tests
 ```
 
-### Linting
+---
 
-**Note:** Linting tools are not currently configured. To add linting support:
-
-**Recommended tools:**
-
-- `black` - Code formatting
-- `flake8` or `ruff` - Linting
-- `mypy` - Type checking
-
-**To set up linting:**
-
-1. Add tools to `requirements.txt`
-2. Add `make lint` and `make format` commands to `Makefile`
-3. Optionally add pre-commit hooks
-
-## Manual Test Checkpoints
-
-See implementation checklist for detailed validation steps.
-
-## Developer Documentation
+## 📖 Project Structure
 
 ### Project Structure
 
@@ -306,17 +268,23 @@ spend-sense/
 └── docs/                  # Documentation
 ```
 
-### Development Workflow
+**Key Modules**:
+- `src/ingest/` - Synthetic data generation and loading
+- `src/features/` - Behavioral signal detection (credit, income, subscriptions, savings)
+- `src/personas/` - Persona classification engine
+- `src/recommend/` - Recommendation engine with rationale generation
+- `src/guardrails/` - Consent management, content safety, eligibility checks
+- `src/api/` - FastAPI REST endpoints
+- `src/ui/` - Streamlit operator dashboard and user view
+- `src/evaluation/` - Metrics and evaluation framework
 
-1. Generate synthetic data: `python -m src.ingest.data_generator --users 50`
-2. Load data into database: `python scripts/load_data.py`
-3. Run tests: `pytest tests/ -v`
-4. Start API server: `uvicorn src.api.routes:app --reload`
-5. Start operator dashboard: `streamlit run src/ui/streamlit_app.py`
+---
 
-### API Usage Examples
+## 🔌 API Usage
 
 The SpendSense API runs on `http://localhost:8000` (when started with `uvicorn src.api.routes:app --reload`).
+
+**Interactive API Docs**: http://localhost:8000/docs (Swagger UI)
 
 #### Get User Profile
 ```bash
@@ -380,14 +348,9 @@ curl http://localhost:8000/recommendations/{rec_id}/view
 curl http://localhost:8000/health
 ```
 
-### Beta Testing Notes
+---
 
-- All beta users are developers - no end-user UI needed
-- Focus on API functionality and operator dashboard
-- Use synthetic data only (no real financial data)
-- Test with 50-100 synthetic users for performance validation
-
-## Limitations
+## ⚠️ Limitations & Production Readiness
 
 This is an MVP implementation with the following limitations:
 
