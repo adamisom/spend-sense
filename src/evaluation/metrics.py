@@ -231,13 +231,6 @@ class RecommendationEvaluator:
     def _calculate_performance_metrics(self, recommendations_df: pd.DataFrame,
                                      signals_df: pd.DataFrame) -> Dict[str, float]:
         """Calculate performance-related metrics."""
-        if recommendations_df.empty:
-            return {
-                'compute_time_p95': 0.0,
-                'error_rate': 0.0,
-                'data_quality_impact': 0.0
-            }
-        
         # Computation time P95 - not available in schema, estimate based on data
         # In a real system, this would be tracked during recommendation generation
         compute_time_p95 = 0.0  # Placeholder - would need to add timing to save_recommendations
@@ -245,9 +238,13 @@ class RecommendationEvaluator:
         # Error rate (users with signals but no recommendations)
         if not signals_df.empty:
             users_with_signals = set(signals_df['user_id'])
-            users_with_recs = set(recommendations_df['user_id']) 
-            users_with_errors = users_with_signals - users_with_recs
-            error_rate = (len(users_with_errors) / len(users_with_signals) * 100) if users_with_signals else 0.0
+            if not recommendations_df.empty:
+                users_with_recs = set(recommendations_df['user_id']) 
+                users_with_errors = users_with_signals - users_with_recs
+                error_rate = (len(users_with_errors) / len(users_with_signals) * 100) if users_with_signals else 0.0
+            else:
+                # Signals exist but no recommendations = 100% error rate
+                error_rate = 100.0
         else:
             error_rate = 100.0  # No signals computed
         
@@ -333,7 +330,7 @@ class RecommendationEvaluator:
             if not user_consent.get(user_id, False):
                 consent_violations += 1
         
-        consent_compliance = ((len(rec_users) - consent_violations) / len(rec_users) * 100) if rec_users else 100.0
+        consent_compliance = ((len(rec_users) - consent_violations) / len(rec_users) * 100) if len(rec_users) > 0 else 100.0
         
         # Eligibility compliance (simplified - assumes all recommendations meet eligibility)
         # In a real system, this would check actual eligibility requirements
