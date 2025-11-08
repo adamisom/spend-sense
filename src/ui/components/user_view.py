@@ -57,24 +57,27 @@ def render_user_view():
             st.session_state.user_id_to_view = user_id_input
             st.rerun()
     
-    # Show available user IDs
+    # Show available user IDs - make it more visible
     if available_user_ids:
-        with st.expander("📋 Available Test User IDs", expanded=False):
-            st.markdown("**Click a user ID to load their profile:**")
-            # Display in columns for better layout
-            cols = st.columns(5)
-            for idx, uid in enumerate(available_user_ids):
-                with cols[idx % 5]:
-                    if st.button(uid, key=f"user_btn_{uid}", use_container_width=True):
-                        st.session_state.user_id_to_view = uid
-                        st.rerun()
+        st.markdown("---")
+        st.markdown("### 📋 Available Test User IDs")
+        st.markdown("**Click a user ID below to quickly load their profile:**")
+        # Display in columns for better layout
+        num_cols = min(5, len(available_user_ids))
+        cols = st.columns(num_cols)
+        for idx, uid in enumerate(available_user_ids):
+            with cols[idx % num_cols]:
+                if st.button(uid, key=f"user_btn_{uid}", use_container_width=True):
+                    st.session_state.user_id_to_view = uid
+                    st.rerun()
+        st.markdown("---")
     
     # Use session state to persist user_id
     if 'user_id_to_view' not in st.session_state:
         st.session_state.user_id_to_view = ""
     
     if not st.session_state.user_id_to_view:
-        st.info("👆 Enter your user ID above to see your personalized financial insights")
+        st.info("👆 Enter your user ID above, or click one of the user IDs below to see personalized financial insights")
         return
     
     user_id = st.session_state.user_id_to_view
