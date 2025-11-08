@@ -697,6 +697,43 @@ class SyntheticDataGenerator:
         
         return transactions
 
+    def _generate_bank_fees(self, profile: UserProfile, checking_account: Dict[str, Any],
+                           start_date: date, end_date: date) -> List[Dict[str, Any]]:
+        """Generate bank fee transactions (overdraft, ATM, maintenance fees)."""
+        transactions = []
+        
+        # Generate 2-5 fees per month for fee_fighter persona
+        fee_types = [
+            ('Overdraft Fee', 35.0, 0.3),  # 30% chance per month
+            ('ATM Fee', 3.0, 0.5),  # 50% chance per month
+            ('Monthly Maintenance Fee', 12.0, 0.4),  # 40% chance per month
+            ('Non-Sufficient Funds', 34.0, 0.2),  # 20% chance per month
+        ]
+        
+        current_date = start_date + timedelta(days=random.randint(1, 15))
+        
+        while current_date <= end_date:
+            for fee_name, fee_amount, probability in fee_types:
+                if random.random() < probability:
+                    transaction = {
+                        'transaction_id': f"{checking_account['account_id']}_fee_{fee_name.replace(' ', '_')}_{current_date.strftime('%Y%m%d')}",
+                        'account_id': checking_account['account_id'],
+                        'user_id': profile.user_id,
+                        'date': current_date.isoformat(),
+                        'amount': -round(fee_amount, 2),  # Negative for fee
+                        'merchant_name': 'Bank Fee',
+                        'category_primary': 'Bank Fee',
+                        'category_detailed': fee_name,
+                        'payment_channel': 'other',
+                        'pending': False
+                    }
+                    transactions.append(transaction)
+            
+            # Next month
+            current_date += timedelta(days=random.randint(28, 32))
+        
+        return transactions
+
     def generate_transactions_csv(self, profiles: List[UserProfile], accounts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Generate transactions CSV data for all users."""
         all_transactions = []
