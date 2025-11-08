@@ -32,7 +32,6 @@ def get_available_user_ids() -> list:
 def render_user_view():
     """Render user-facing view of recommendations."""
     st.title("💰 My Financial Insights")
-    st.markdown("---")
     
     # Get available user IDs
     available_user_ids = get_available_user_ids()
@@ -50,48 +49,68 @@ def render_user_view():
             if len(available_user_ids) > 20:
                 st.caption(f"... and {len(available_user_ids) - 20} more")
     
-    # User ID input with Enter key support using form
-    with st.form("user_id_form", clear_on_submit=False):
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            user_id_input = st.text_input(
-                "Enter Your User ID",
-                value=st.session_state.get('user_id_to_view', ''),
-                placeholder="e.g., user_001",
-                help="Enter your user ID and press Enter or click Load"
-            )
-        
-        with col2:
-            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
-            submitted = st.form_submit_button("🔍 Load My Profile", type="primary")
-        
-        # Handle form submission (Enter key or button click)
-        if submitted and user_id_input:
-            st.session_state.user_id_to_view = user_id_input
-            st.rerun()
-    
-    # Also show user IDs below form if no user loaded yet
-    if available_user_ids and not st.session_state.get('user_id_to_view'):
-        st.markdown("---")
-        st.markdown("### 📋 Available Test User IDs")
-        st.markdown("**Or click a user ID below to quickly load their profile:**")
-        # Display in columns for better layout
-        num_cols = min(5, len(available_user_ids))
-        cols = st.columns(num_cols)
-        for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
-            with cols[idx % num_cols]:
-                if st.button(uid, key=f"main_user_btn_{uid}", use_container_width=True):
-                    st.session_state.user_id_to_view = uid
-                    st.rerun()
-        if len(available_user_ids) > 20:
-            st.caption(f"... and {len(available_user_ids) - 20} more (see sidebar for all)")
-        st.markdown("---")
-    
     # Use session state to persist user_id
     if 'user_id_to_view' not in st.session_state:
         st.session_state.user_id_to_view = ""
     
-    if not st.session_state.user_id_to_view:
+    # Check if user is loaded
+    user_loaded = bool(st.session_state.get('user_id_to_view'))
+    
+    if user_loaded:
+        # Show back button and current user info
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col1:
+            if st.button("← Back to User List", use_container_width=True):
+                st.session_state.user_id_to_view = ""
+                st.rerun()
+        with col2:
+            st.markdown(f"**Viewing:** `{st.session_state.user_id_to_view}`")
+        with col3:
+            if st.button("🔄 Change User", use_container_width=True):
+                st.session_state.user_id_to_view = ""
+                st.rerun()
+        st.markdown("---")
+    else:
+        # Show user selection interface
+        st.markdown("---")
+        
+        # User ID input with Enter key support using form
+        with st.form("user_id_form", clear_on_submit=False):
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                user_id_input = st.text_input(
+                    "Enter Your User ID",
+                    value="",
+                    placeholder="e.g., user_001",
+                    help="Enter your user ID and press Enter or click Load"
+                )
+            
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+                submitted = st.form_submit_button("🔍 Load My Profile", type="primary")
+            
+            # Handle form submission (Enter key or button click)
+            if submitted and user_id_input:
+                st.session_state.user_id_to_view = user_id_input
+                st.rerun()
+        
+        # Show user IDs below form
+        if available_user_ids:
+            st.markdown("---")
+            st.markdown("### 📋 Available Test User IDs")
+            st.markdown("**Click a user ID below to quickly load their profile:**")
+            # Display in columns for better layout
+            num_cols = min(5, len(available_user_ids))
+            cols = st.columns(num_cols)
+            for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
+                with cols[idx % num_cols]:
+                    if st.button(uid, key=f"main_user_btn_{uid}", use_container_width=True):
+                        st.session_state.user_id_to_view = uid
+                        st.rerun()
+            if len(available_user_ids) > 20:
+                st.caption(f"... and {len(available_user_ids) - 20} more (see sidebar for all)")
+            st.markdown("---")
+        
         st.info("👆 Enter your user ID above, or click one of the user IDs in the sidebar or below to see personalized financial insights")
         return
     
