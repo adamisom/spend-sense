@@ -37,6 +37,19 @@ def render_user_view():
     # Get available user IDs
     available_user_ids = get_available_user_ids()
     
+    # Show available user IDs in sidebar for easy access
+    if available_user_ids:
+        with st.sidebar:
+            st.markdown("### 📋 Test User IDs")
+            st.markdown("**Click to load:**")
+            # Show in a more compact format
+            for uid in available_user_ids[:20]:  # Limit to first 20 for performance
+                if st.button(uid, key=f"sidebar_user_{uid}", use_container_width=True):
+                    st.session_state.user_id_to_view = uid
+                    st.rerun()
+            if len(available_user_ids) > 20:
+                st.caption(f"... and {len(available_user_ids) - 20} more")
+    
     # User ID input with Enter key support using form
     with st.form("user_id_form", clear_on_submit=False):
         col1, col2 = st.columns([2, 1])
@@ -57,19 +70,21 @@ def render_user_view():
             st.session_state.user_id_to_view = user_id_input
             st.rerun()
     
-    # Show available user IDs - make it more visible
-    if available_user_ids:
+    # Also show user IDs below form if no user loaded yet
+    if available_user_ids and not st.session_state.get('user_id_to_view'):
         st.markdown("---")
         st.markdown("### 📋 Available Test User IDs")
-        st.markdown("**Click a user ID below to quickly load their profile:**")
+        st.markdown("**Or click a user ID below to quickly load their profile:**")
         # Display in columns for better layout
         num_cols = min(5, len(available_user_ids))
         cols = st.columns(num_cols)
-        for idx, uid in enumerate(available_user_ids):
+        for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
             with cols[idx % num_cols]:
-                if st.button(uid, key=f"user_btn_{uid}", use_container_width=True):
+                if st.button(uid, key=f"main_user_btn_{uid}", use_container_width=True):
                     st.session_state.user_id_to_view = uid
                     st.rerun()
+        if len(available_user_ids) > 20:
+            st.caption(f"... and {len(available_user_ids) - 20} more (see sidebar for all)")
         st.markdown("---")
     
     # Use session state to persist user_id
@@ -77,7 +92,7 @@ def render_user_view():
         st.session_state.user_id_to_view = ""
     
     if not st.session_state.user_id_to_view:
-        st.info("👆 Enter your user ID above, or click one of the user IDs below to see personalized financial insights")
+        st.info("👆 Enter your user ID above, or click one of the user IDs in the sidebar or below to see personalized financial insights")
         return
     
     user_id = st.session_state.user_id_to_view
