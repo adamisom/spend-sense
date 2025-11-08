@@ -36,6 +36,12 @@ class UserSignals(BaseModel):
     has_atm_fees: bool = Field(False, description="True if ATM fees detected")
     has_maintenance_fees: bool = Field(False, description="True if account maintenance fees detected")
     
+    # Fraud detection signals (NEW - for fraud prevention)
+    fraud_transaction_count: int = Field(0, ge=0, description="Number of fraud transactions in period")
+    fraud_rate: float = Field(0.0, ge=0.0, le=1.0, description="Fraction of transactions that are fraud (0.0-1.0)")
+    has_fraud_history: bool = Field(False, description="True if user has any fraud transactions")
+    fraud_risk_score: float = Field(0.0, ge=0.0, le=1.0, description="Risk score based on fraud patterns (0.0-1.0)")
+    
     # Data quality flags
     insufficient_data: bool = Field(False, description="True if below minimum thresholds")
     data_quality_score: float = Field(1.0, ge=0.0, le=1.0, description="Confidence in signals (0.0-1.0)")

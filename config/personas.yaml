@@ -4,7 +4,7 @@
 personas:
   high_utilization:
     name: "High Utilization"
-    priority: 1  # Highest priority (lowest number)
+    priority: 2  # High priority, but fraud risk is priority 1
     description: "Users with high credit card utilization or payment issues"
     criteria:
       - field: "credit_utilization_max"
@@ -30,7 +30,7 @@ personas:
     
   variable_income:
     name: "Variable Income Budgeter"
-    priority: 2
+    priority: 3
     description: "Users with irregular income patterns and cash flow challenges"
     criteria:
       - field: "income_pay_gap"
@@ -51,7 +51,7 @@ personas:
     
   subscription_heavy:
     name: "Subscription-Heavy"
-    priority: 3
+    priority: 4
     description: "Users with many subscriptions or high subscription spending"
     criteria:
       - field: "subscription_count"
@@ -74,6 +74,33 @@ personas:
       - "negotiation_tips"
       - "usage_tracking"
     why_priority_3: "Cost optimization opportunity, but not urgent"
+    
+  fraud_risk:
+    name: "Fraud Risk"
+    priority: 1  # Highest priority - fraud is urgent
+    description: "Users with fraud transaction history or elevated fraud risk"
+    criteria:
+      - field: "has_fraud_history"
+        operator: "=="
+        value: true
+        description: "User has at least one fraud transaction"
+      - field: "fraud_risk_score"
+        operator: ">="
+        value: 0.1
+        combinator: "OR"
+        description: "Fraud risk score 0.1 or higher"
+      - field: "fraud_rate"
+        operator: ">="
+        value: 0.01
+        combinator: "OR"
+        description: "Fraud rate 1% or higher"
+    focus_areas:
+      - "fraud_prevention"
+      - "transaction_monitoring"
+      - "account_security"
+      - "fraud_reporting"
+      - "card_protection"
+    why_priority_1: "Fraud is time-sensitive and can cause immediate financial harm. Users need immediate guidance on prevention and response."
     
   fee_fighter:
     name: "Fee Fighter"
@@ -104,7 +131,7 @@ personas:
     
   savings_builder:
     name: "Savings Builder"
-    priority: 5  # Updated from 4 (Fee Fighter is now 3, subscription_heavy is 3, so savings_builder moves to 5)
+    priority: 6  # Updated priorities: fraud_risk=1, high_utilization=2, variable_income=3, fee_fighter=3, subscription_heavy=4, savings_builder=6
     description: "Users actively saving with good credit management"
     criteria:
       - field: "savings_growth_rate"

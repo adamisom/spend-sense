@@ -7,6 +7,7 @@ import argparse
 from pathlib import Path
 from loguru import logger
 from src.db.connection import initialize_db, database_transaction, DatabaseError
+from src.ingest.transaction_transformer import load_and_transform_formatted_transactions
 import time
 
 def load_csv_to_table(csv_path: str, table_name: str, db_path: str) -> int:
@@ -32,6 +33,39 @@ def load_csv_to_table(csv_path: str, table_name: str, db_path: str) -> int:
         
     except Exception as e:
         raise DatabaseError(f"load_{table_name}", str(e))
+
+def load_formatted_transactions(csv_path: str, db_path: str, mode: str = "append") -> int:
+    """
+    Load transactions_formatted.csv with transformation.
+    
+    Args:
+        csv_path: Path to transactions_formatted.csv
+        db_path: Database path
+        mode: 'append' or 'replace' for existing data
+        
+    Returns:
+        Number of records loaded
+    """
+    try:
+        # Load and transform
+        transformed = load_and_transform_formatted_transactions(csv_path)
+        
+        if transformed.empty:
+            logger.warning("No transactions to load after transformation")
+            return 0
+        
+        # Load into database
+        with database_transaction(db_path) as conn:
+            if_exists = mode if mode in ['append', 'replace'] else 'append'
+            transformed.to_sql('transactions', conn, if_exists=if_exists, index=False)
+            count = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+        
+        logger.info(f"Loaded {len(transformed)} formatted transactions into database (total: {count})")
+        return len(transformed)
+        
+    except Exception as e:
+        raise DatabaseError("load_formatted_transactions", str(e))
+
 
 def load_all_data(data_dir: str = "data/synthetic", db_path: str = "db/spend_sense.db") -> dict:
     """Load all CSV files into database."""
@@ -108,13 +142,27 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Load synthetic data into database')
     parser.add_argument('--data-dir', default='data/synthetic', help='Directory containing CSV files')
     parser.add_argument('--db-path', default='db/spend_sense.db', help='Database path')
+    parser.add_argument('--formatted-transactions', help='Path to transactions_formatted.csv file')
+    parser.add_argument('--mode', choices=['append', 'replace'], default='append', 
+                       help='Mode for loading formatted transactions (append or replace)')
     parser.add_argument('--validate', action='store_true', help='Run data integrity validation')
     
     args = parser.parse_args()
     
     try:
-        # Load data
+        # Load standard synthetic data
         results = load_all_data(args.data_dir, args.db_path)
+        
+        # Load formatted transactions if provided
+        if args.formatted_transactions:
+            formatted_path = Path(args.formatted_transactions)
+            if not formatted_path.exists():
+                logger.error(f"Formatted transactions file not found: {formatted_path}")
+                exit(1)
+            
+            logger.info(f"Loading formatted transactions from {formatted_path}")
+            count = load_formatted_transactions(str(formatted_path), args.db_path, args.mode)
+            results['formatted_transactions'] = count
         
         # Print summary
         print("\n✅ Data Loading Summary:")

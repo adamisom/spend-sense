@@ -359,6 +359,62 @@
       "eligibility": {},
       "priority_score": 7.0,
       "tags": ["atm", "fees", "banking"]
+    },
+    {
+      "content_id": "fraud_prevention_guide",
+      "type": "article",
+      "title": "Protect Yourself from Fraud: Complete Prevention Guide",
+      "description": "Learn how to spot and prevent fraudulent transactions. Includes tips on monitoring your accounts, recognizing fraud patterns, and what to do if you're a victim.",
+      "personas": ["fraud_risk"],
+      "signal_triggers": ["has_fraud_history", "high_fraud_risk", "elevated_fraud_rate"],
+      "url": "/content/fraud-prevention-guide",
+      "reading_time_minutes": 12,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 9.5,
+      "tags": ["fraud", "security", "prevention"]
+    },
+    {
+      "content_id": "transaction_monitoring_checklist",
+      "type": "checklist",
+      "title": "Daily Transaction Monitoring Checklist",
+      "description": "A simple 5-minute daily routine to review your transactions and catch fraud early. Includes what to look for and when to report suspicious activity.",
+      "personas": ["fraud_risk"],
+      "signal_triggers": ["has_fraud_history", "high_fraud_risk"],
+      "url": "/content/transaction-monitoring-checklist",
+      "reading_time_minutes": 5,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 9.0,
+      "tags": ["fraud", "monitoring", "checklist"]
+    },
+    {
+      "content_id": "fraud_reporting_guide",
+      "type": "article",
+      "title": "How to Report Fraud: Step-by-Step Guide",
+      "description": "What to do immediately after discovering fraud. Includes contact information, documentation needed, and how to dispute charges.",
+      "personas": ["fraud_risk"],
+      "signal_triggers": ["has_fraud_history"],
+      "url": "/content/fraud-reporting-guide",
+      "reading_time_minutes": 8,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 8.5,
+      "tags": ["fraud", "reporting", "dispute"]
+    },
+    {
+      "content_id": "card_protection_tips",
+      "type": "article",
+      "title": "Credit and Debit Card Protection Tips",
+      "description": "Best practices for protecting your cards from fraud. Covers chip cards, contactless payments, online security, and when to freeze your cards.",
+      "personas": ["fraud_risk"],
+      "signal_triggers": ["high_fraud_risk", "elevated_fraud_rate"],
+      "url": "/content/card-protection-tips",
+      "reading_time_minutes": 10,
+      "difficulty_level": "beginner",
+      "eligibility": {},
+      "priority_score": 8.0,
+      "tags": ["fraud", "cards", "security"]
     }
   ]
 }

@@ -68,6 +68,14 @@ def map_signals_to_triggers(signals: UserSignals) -> List[SignalTrigger]:
         if signals.has_maintenance_fees:
             triggers.append(SignalTrigger.HAS_MAINTENANCE_FEES)
         
+        # Fraud detection triggers (NEW)
+        if signals.has_fraud_history:
+            triggers.append(SignalTrigger.HAS_FRAUD_HISTORY)
+        if signals.fraud_risk_score >= 0.1:
+            triggers.append(SignalTrigger.HIGH_FRAUD_RISK)
+        if signals.fraud_rate >= 0.01:
+            triggers.append(SignalTrigger.ELEVATED_FRAUD_RATE)
+        
         # Data quality triggers
         if signals.insufficient_data:
             triggers.append(SignalTrigger.INSUFFICIENT_DATA)
@@ -109,6 +117,11 @@ def get_trigger_explanations() -> Dict[SignalTrigger, str]:
         SignalTrigger.HAS_OVERDRAFT_FEES: "You've been charged overdraft fees",
         SignalTrigger.HAS_ATM_FEES: "You're paying ATM fees",
         SignalTrigger.HAS_MAINTENANCE_FEES: "You're paying account maintenance fees",
+        
+        # Fraud detection explanations
+        SignalTrigger.HAS_FRAUD_HISTORY: "You have fraud transactions in your history",
+        SignalTrigger.HIGH_FRAUD_RISK: "Your account shows elevated fraud risk",
+        SignalTrigger.ELEVATED_FRAUD_RATE: "Your fraud rate is above normal levels",
         
         # Data quality explanations
         SignalTrigger.INSUFFICIENT_DATA: "We need more transaction data to provide personalized recommendations"

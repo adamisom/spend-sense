@@ -45,6 +45,11 @@ class SignalTrigger(str, Enum):
     HAS_OVERDRAFT_FEES = "has_overdraft_fees"  # has_overdraft_fees = true
     HAS_ATM_FEES = "has_atm_fees"  # has_atm_fees = true
     HAS_MAINTENANCE_FEES = "has_maintenance_fees"  # has_maintenance_fees = true
+    
+    # Fraud detection triggers (NEW)
+    HAS_FRAUD_HISTORY = "has_fraud_history"  # has_fraud_history = true
+    HIGH_FRAUD_RISK = "high_fraud_risk"  # fraud_risk_score >= 0.1
+    ELEVATED_FRAUD_RATE = "elevated_fraud_rate"  # fraud_rate >= 0.01
 
 class EligibilityRequirements(BaseModel):
     """Requirements for content eligibility."""
