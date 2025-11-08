@@ -757,11 +757,11 @@ class SyntheticDataGenerator:
                 continue
             
             # APR based on credit behavior and persona
-            # For savings_builder and fee_fighter, set lower/no APR to avoid matching high_utilization
+            # For savings_builder, fee_fighter, and variable_income, set APR=0 to avoid matching high_utilization
             if profile.scenario == 'savings_builder':
                 apr = 0.0  # No interest charges for savings builders
-            elif profile.scenario == 'fee_fighter':
-                apr = random.uniform(0, 5)  # Very low APR
+            elif profile.scenario == 'fee_fighter' or profile.scenario == 'variable_income':
+                apr = 0.0  # No interest charges to avoid matching high_utilization
             elif profile.credit_behavior == 'excellent':
                 apr = random.uniform(12.99, 18.99)
             elif profile.credit_behavior == 'good':
