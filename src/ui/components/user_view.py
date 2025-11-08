@@ -116,21 +116,22 @@ def render_user_view():
             
             st.markdown("**Click to load:**")
             # Show in a more compact format with colored borders
+            # Define color indicators once
+            color_indicators = {
+                'high_utilization': '🔴',
+                'variable_income': '🟡',
+                'subscription_heavy': '🟠',
+                'savings_builder': '🟢',
+                'fee_fighter': '🔵',
+                'fraud_risk': '🟣',
+                'insufficient_data': '⚪'
+            }
+            
             for uid in available_user_ids[:20]:  # Limit to first 20 for performance
                 persona_id = user_personas.get(uid, 'insufficient_data')
                 color = persona_colors.get(persona_id, '#6c757d')
                 
                 # Create button with colored border indicator
-                # Use colored square emoji based on persona
-                color_indicators = {
-                    'high_utilization': '🔴',
-                    'variable_income': '🟡',
-                    'subscription_heavy': '🟠',
-                    'savings_builder': '🟢',
-                    'fee_fighter': '🔵',
-                    'fraud_risk': '🟣',
-                    'insufficient_data': '⚪'
-                }
                 indicator = color_indicators.get(persona_id, '⚪')
                 button_label = f"{indicator} {uid}"
                 button_html = f"""
@@ -215,6 +216,17 @@ def render_user_view():
             
             st.markdown("**Click a user ID below to quickly load their profile:**")
             # Display in columns for better layout
+            # Define color indicators once
+            color_indicators = {
+                'high_utilization': '🔴',
+                'variable_income': '🟡',
+                'subscription_heavy': '🟠',
+                'savings_builder': '🟢',
+                'fee_fighter': '🔵',
+                'fraud_risk': '🟣',
+                'insufficient_data': '⚪'
+            }
+            
             num_cols = min(5, len(available_user_ids))
             cols = st.columns(num_cols)
             for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
@@ -223,18 +235,8 @@ def render_user_view():
                 
                 with cols[idx % num_cols]:
                     # Create button with colored border indicator
-                    # Use colored square emoji based on persona
-                color_indicators = {
-                    'high_utilization': '🔴',
-                    'variable_income': '🟡',
-                    'subscription_heavy': '🟠',
-                    'savings_builder': '🟢',
-                    'fee_fighter': '🔵',
-                    'fraud_risk': '🟣',
-                    'insufficient_data': '⚪'
-                }
-                indicator = color_indicators.get(persona_id, '⚪')
-                button_label = f"{indicator} {uid}"
+                    indicator = color_indicators.get(persona_id, '⚪')
+                    button_label = f"{indicator} {uid}"
                     button_html = f"""
                     <style>
                         button[kind="secondary"][data-testid="baseButton-secondary"][id*="main_user_btn_{uid}"] {{
