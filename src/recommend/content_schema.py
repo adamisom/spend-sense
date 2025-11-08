@@ -89,7 +89,7 @@ class ContentItem(BaseModel):
         """Ensure all personas are valid."""
         valid_personas = [
             'high_utilization', 'variable_income', 'subscription_heavy', 
-            'savings_builder', 'fee_fighter', 'insufficient_data'
+            'savings_builder', 'fee_fighter', 'fraud_risk', 'insufficient_data'
         ]
         for persona in v:
             if persona not in valid_personas:
@@ -126,7 +126,7 @@ class ContentCatalog(BaseModel):
         issues = []
         
         # Check persona coverage
-        all_personas = {'high_utilization', 'variable_income', 'subscription_heavy', 'savings_builder', 'insufficient_data'}
+        all_personas = {'high_utilization', 'variable_income', 'subscription_heavy', 'savings_builder', 'fee_fighter', 'fraud_risk', 'insufficient_data'}
         covered_personas = set()
         for item in self.items:
             covered_personas.update(item.personas)
