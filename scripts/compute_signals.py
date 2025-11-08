@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from loguru import logger
 import sys
+import sqlite3
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -37,15 +38,32 @@ def compute_user_signals(user_id: str, window_days: int = 180, db_path: str = "d
         
         with database_transaction(db_path) as conn:
             # Get transactions (include account_id for savings computation)
-            transactions_df = pd.read_sql_query("""
-                SELECT 
-                    transaction_id, account_id, date, amount, merchant_name, 
-                    category_primary, category_detailed, payment_channel,
-                    is_fraud, transaction_type, status
-                FROM transactions
-                WHERE user_id = ? AND date >= ?
-                ORDER BY date DESC
-            """, conn, params=(user_id, cutoff_date))
+            # Check which columns exist (is_fraud may not exist in older schemas)
+            try:
+                # Try with all columns first
+                transactions_df = pd.read_sql_query("""
+                    SELECT 
+                        transaction_id, account_id, date, amount, merchant_name, 
+                        category_primary, category_detailed, payment_channel,
+                        is_fraud, transaction_type, status
+                    FROM transactions
+                    WHERE user_id = ? AND date >= ?
+                    ORDER BY date DESC
+                """, conn, params=(user_id, cutoff_date))
+            except sqlite3.OperationalError:
+                # Fallback if is_fraud column doesn't exist
+                transactions_df = pd.read_sql_query("""
+                    SELECT 
+                        transaction_id, account_id, date, amount, merchant_name, 
+                        category_primary, category_detailed, payment_channel
+                    FROM transactions
+                    WHERE user_id = ? AND date >= ?
+                    ORDER BY date DESC
+                """, conn, params=(user_id, cutoff_date))
+                # Add missing columns with defaults
+                transactions_df['is_fraud'] = 0
+                transactions_df['transaction_type'] = None
+                transactions_df['status'] = None
             
             # Get accounts
             accounts_df = pd.read_sql_query("""
