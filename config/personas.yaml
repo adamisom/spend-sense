@@ -99,7 +99,7 @@ personas:
     
   fee_fighter:
     name: "Fee Fighter"
-    priority: 4  # Same priority as subscription_heavy, but fee_fighter criteria are more specific
+    priority: 5  # Lower priority than subscription_heavy (4), but fee_fighter comes first in config so it wins ties
     description: "Users incurring excessive bank fees that could be avoided"
     criteria:
       - field: "monthly_bank_fees"
