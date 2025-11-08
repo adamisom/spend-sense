@@ -286,6 +286,15 @@ def main():
     # Initialize session state
     initialize_session_state()
     
+    # Check if user is trying to access a page route directly (multi-page mode)
+    # Redirect them to root and set the page in session state
+    query_params = st.query_params
+    if query_params:
+        # If there are query params, we might be in multi-page mode
+        # Clear them and redirect to root
+        st.query_params.clear()
+        st.rerun()
+    
     # Handle signal computation request
     if st.session_state.get('compute_signals', False):
         st.session_state.compute_signals = False  # Reset flag
