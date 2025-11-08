@@ -64,12 +64,12 @@ class SyntheticDataGenerator:
             *[UserProfile(f"user_{i+1:03d}", 'medium', 'poor', 'none', 'moderate', True, 'high_utilization') for i in range(5)],
             # Variable Income (5 users)  
             *[UserProfile(f"user_{i+6:03d}", 'low', 'fair', 'minimal', 'light', True, 'variable_income') for i in range(5)],
-            # Subscription Heavy (5 users)
+            # Subscription Heavy (5 users) - but not fee_fighter users
             *[UserProfile(f"user_{i+11:03d}", 'medium', 'good', 'moderate', 'heavy', False, 'subscription_heavy') for i in range(5)],
             # Savings Builder (5 users)
             *[UserProfile(f"user_{i+16:03d}", 'high', 'excellent', 'aggressive', 'light', False, 'savings_builder') for i in range(5)],
-            # Fee Fighter (5 users)
-            *[UserProfile(f"user_{i+21:03d}", 'low', 'fair', 'minimal', 'moderate', True, 'fee_fighter') for i in range(5)],
+            # Fee Fighter (5 users) - minimal subscriptions to avoid matching subscription_heavy
+            *[UserProfile(f"user_{i+21:03d}", 'low', 'fair', 'minimal', 'light', True, 'fee_fighter') for i in range(5)],
             # Mixed/Other (5 users)
             *[UserProfile(f"user_{i+26:03d}", 
                 random.choices(['low', 'medium', 'high'], weights=[30, 50, 20])[0],

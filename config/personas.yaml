@@ -37,11 +37,6 @@ personas:
         operator: ">"
         value: 45
         description: "Income gaps longer than 45 days"
-      - field: "cash_flow_buffer"
-        operator: "<"
-        value: 1.0
-        combinator: "AND"
-        description: "Cash flow buffer less than 1 month"
     focus_areas:
       - "percentage_budgets"
       - "emergency_fund"
@@ -104,7 +99,7 @@ personas:
     
   fee_fighter:
     name: "Fee Fighter"
-    priority: 5  # Fixed: was duplicate of variable_income (3), now unique
+    priority: 3  # Higher priority than subscription_heavy (4) so it wins when both match
     description: "Users incurring excessive bank fees that could be avoided"
     criteria:
       - field: "monthly_bank_fees"
