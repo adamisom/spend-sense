@@ -36,10 +36,10 @@ def compute_user_signals(user_id: str, window_days: int = 180, db_path: str = "d
         cutoff_date = (datetime.now() - timedelta(days=window_days)).date()
         
         with database_transaction(db_path) as conn:
-            # Get transactions
+            # Get transactions (include account_id for savings computation)
             transactions_df = pd.read_sql_query("""
                 SELECT 
-                    transaction_id, date, amount, merchant_name, 
+                    transaction_id, account_id, date, amount, merchant_name, 
                     category_primary, category_detailed, payment_channel,
                     is_fraud, transaction_type, status
                 FROM transactions
