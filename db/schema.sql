@@ -35,6 +35,14 @@ CREATE TABLE transactions (
     category_detailed TEXT,
     payment_channel TEXT,  -- online, in store, atm, other
     pending BOOLEAN DEFAULT FALSE,
+    -- Fraud detection fields
+    is_fraud INTEGER DEFAULT 0,  -- 0 = not fraud, 1 = fraud
+    latitude REAL,  -- Geographic location
+    longitude REAL,  -- Geographic location
+    account_balance REAL,  -- Balance at time of transaction
+    transaction_type TEXT,  -- purchase, transfer, refund, deposit, withdrawal, fee
+    amount_category TEXT,  -- small, medium, large, very_large, extra_large
+    status TEXT,  -- approved, declined, pending
     FOREIGN KEY (account_id) REFERENCES accounts(account_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
@@ -101,6 +109,8 @@ CREATE TABLE feedback (
 -- Create indexes for performance
 CREATE INDEX idx_transactions_user_date ON transactions(user_id, date);
 CREATE INDEX idx_transactions_merchant ON transactions(merchant_name);
+CREATE INDEX idx_transactions_fraud ON transactions(is_fraud, user_id);
+CREATE INDEX idx_transactions_location ON transactions(latitude, longitude);
 CREATE INDEX idx_accounts_user_type ON accounts(user_id, type);
 CREATE INDEX idx_recommendations_user_created ON recommendations(user_id, created_at);
 CREATE INDEX idx_feedback_user ON feedback(user_id);
