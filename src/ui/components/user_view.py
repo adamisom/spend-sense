@@ -29,6 +29,60 @@ def get_available_user_ids() -> list:
         logger.error(f"Error getting user IDs: {e}")
         return []
 
+def get_user_personas(user_ids: list) -> Dict[str, str]:
+    """Get persona for each user ID."""
+    personas = {}
+    try:
+        from src.features.schema import UserSignals
+        from src.personas.persona_classifier import classify_persona
+        from src.db.connection import get_user_signals
+        
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        
+        for user_id in user_ids:
+            try:
+                signals_dict = get_user_signals(user_id, "180d", db_path)
+                if signals_dict:
+                    signals = UserSignals(**signals_dict)
+                    persona_match = classify_persona(signals)
+                    if persona_match:
+                        personas[user_id] = persona_match.persona_id
+                    else:
+                        personas[user_id] = 'insufficient_data'
+                else:
+                    personas[user_id] = 'insufficient_data'
+            except Exception as e:
+                logger.warning(f"Error getting persona for {user_id}: {e}")
+                personas[user_id] = 'insufficient_data'
+    except Exception as e:
+        logger.error(f"Error getting user personas: {e}")
+    
+    return personas
+
+def get_persona_colors() -> Dict[str, str]:
+    """Get color mapping for each persona."""
+    return {
+        'high_utilization': '#dc3545',      # Red
+        'variable_income': '#ffc107',       # Yellow/Amber
+        'subscription_heavy': '#fd7e14',     # Orange
+        'savings_builder': '#28a745',       # Green
+        'fee_fighter': '#007bff',            # Blue
+        'fraud_risk': '#e83e8c',             # Pink
+        'insufficient_data': '#6c757d'       # Gray
+    }
+
+def get_persona_names() -> Dict[str, str]:
+    """Get display names for each persona."""
+    return {
+        'high_utilization': 'High Utilization',
+        'variable_income': 'Variable Income',
+        'subscription_heavy': 'Subscription Heavy',
+        'savings_builder': 'Savings Builder',
+        'fee_fighter': 'Fee Fighter',
+        'fraud_risk': 'Fraud Risk',
+        'insufficient_data': 'Insufficient Data'
+    }
+
 def render_user_view():
     """Render user-facing view of recommendations."""
     st.title("💰 My Financial Insights")
@@ -36,13 +90,47 @@ def render_user_view():
     # Get available user IDs
     available_user_ids = get_available_user_ids()
     
+    # Get personas for all users
+    user_personas = get_user_personas(available_user_ids) if available_user_ids else {}
+    persona_colors = get_persona_colors()
+    persona_names = get_persona_names()
+    
     # Show available user IDs in sidebar for easy access
     if available_user_ids:
         with st.sidebar:
             st.markdown("### 📋 Test User IDs")
+            
+            # Persona legend
+            st.markdown("**Persona Colors:**")
+            legend_html = "<div style='margin-bottom: 1rem;'>"
+            for persona_id, color in persona_colors.items():
+                persona_name = persona_names.get(persona_id, persona_id)
+                legend_html += f"""
+                <div style='display: flex; align-items: center; margin: 0.25rem 0;'>
+                    <div style='width: 20px; height: 20px; background-color: {color}; border: 2px solid {color}; border-radius: 3px; margin-right: 0.5rem;'></div>
+                    <span style='font-size: 0.85rem;'>{persona_name}</span>
+                </div>
+                """
+            legend_html += "</div>"
+            st.markdown(legend_html, unsafe_allow_html=True)
+            
             st.markdown("**Click to load:**")
-            # Show in a more compact format
+            # Show in a more compact format with colored borders
             for uid in available_user_ids[:20]:  # Limit to first 20 for performance
+                persona_id = user_personas.get(uid, 'insufficient_data')
+                color = persona_colors.get(persona_id, '#6c757d')
+                
+                # Create button with colored border using custom CSS
+                button_style = f"""
+                <style>
+                    div[data-testid="stButton"] > button[kind="secondary"][data-testid="baseButton-secondary"][id*="sidebar_user_{uid}"] {{
+                        border: 3px solid {color} !important;
+                        border-radius: 0.5rem !important;
+                    }}
+                </style>
+                """
+                st.markdown(button_style, unsafe_allow_html=True)
+                
                 if st.button(uid, key=f"sidebar_user_{uid}", use_container_width=True):
                     st.session_state.user_id_to_view = uid
                     st.rerun()
@@ -98,12 +186,41 @@ def render_user_view():
         if available_user_ids:
             st.markdown("---")
             st.markdown("### 📋 Available Test User IDs")
+            
+            # Persona legend
+            st.markdown("**Persona Colors:**")
+            legend_cols = st.columns(7)
+            for idx, (persona_id, color) in enumerate(persona_colors.items()):
+                with legend_cols[idx % 7]:
+                    persona_name = persona_names.get(persona_id, persona_id)
+                    legend_html = f"""
+                    <div style='text-align: center; margin-bottom: 0.5rem;'>
+                        <div style='width: 30px; height: 30px; background-color: {color}; border: 2px solid {color}; border-radius: 4px; margin: 0 auto 0.25rem;'></div>
+                        <span style='font-size: 0.75rem; display: block;'>{persona_name}</span>
+                    </div>
+                    """
+                    st.markdown(legend_html, unsafe_allow_html=True)
+            
             st.markdown("**Click a user ID below to quickly load their profile:**")
             # Display in columns for better layout
             num_cols = min(5, len(available_user_ids))
             cols = st.columns(num_cols)
             for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
+                persona_id = user_personas.get(uid, 'insufficient_data')
+                color = persona_colors.get(persona_id, '#6c757d')
+                
                 with cols[idx % num_cols]:
+                    # Create button with colored border using custom CSS
+                    button_style = f"""
+                    <style>
+                        div[data-testid="stButton"] > button[kind="secondary"][data-testid="baseButton-secondary"][id*="main_user_btn_{uid}"] {{
+                            border: 3px solid {color} !important;
+                            border-radius: 0.5rem !important;
+                        }}
+                    </style>
+                    """
+                    st.markdown(button_style, unsafe_allow_html=True)
+                    
                     if st.button(uid, key=f"main_user_btn_{uid}", use_container_width=True):
                         st.session_state.user_id_to_view = uid
                         st.rerun()
