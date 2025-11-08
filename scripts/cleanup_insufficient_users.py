@@ -68,16 +68,28 @@ def delete_users(user_ids: list, db_path: str = "db/spend_sense.db"):
     """Delete users and all their related data."""
     conn = sqlite3.connect(db_path)
     
+    # Get list of existing tables
+    tables = conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
+    table_names = [t[0] for t in tables]
+    
     for user_id in user_ids:
-        # Delete in order to respect foreign keys
-        conn.execute("DELETE FROM feedback WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM recommendations WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM persona_assignments WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM user_signals WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM liabilities WHERE account_id IN (SELECT account_id FROM accounts WHERE user_id = ?)", (user_id,))
-        conn.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
-        conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        # Delete in order to respect foreign keys (only if tables exist)
+        if 'feedback' in table_names:
+            conn.execute("DELETE FROM feedback WHERE user_id = ?", (user_id,))
+        if 'recommendations' in table_names:
+            conn.execute("DELETE FROM recommendations WHERE user_id = ?", (user_id,))
+        if 'persona_assignments' in table_names:
+            conn.execute("DELETE FROM persona_assignments WHERE user_id = ?", (user_id,))
+        if 'user_signals' in table_names:
+            conn.execute("DELETE FROM user_signals WHERE user_id = ?", (user_id,))
+        if 'transactions' in table_names:
+            conn.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
+        if 'liabilities' in table_names:
+            conn.execute("DELETE FROM liabilities WHERE account_id IN (SELECT account_id FROM accounts WHERE user_id = ?)", (user_id,))
+        if 'accounts' in table_names:
+            conn.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
+        if 'users' in table_names:
+            conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
         print(f"  ✅ Deleted {user_id}")
     
     conn.commit()
