@@ -14,25 +14,60 @@ sys.path.append(str(project_root))
 from src.db.connection import database_transaction
 from loguru import logger
 
+def get_available_user_ids() -> list:
+    """Get list of all available user IDs from database."""
+    try:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        with database_transaction(db_path) as conn:
+            results = conn.execute("""
+                SELECT DISTINCT user_id 
+                FROM users 
+                ORDER BY user_id
+            """).fetchall()
+            return [row['user_id'] for row in results]
+    except Exception as e:
+        logger.error(f"Error getting user IDs: {e}")
+        return []
+
 def render_user_view():
     """Render user-facing view of recommendations."""
     st.title("💰 My Financial Insights")
     st.markdown("---")
     
-    # User ID input
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        user_id = st.text_input(
-            "Enter Your User ID",
-            value="",
-            placeholder="e.g., user_001",
-            help="Enter your user ID to see personalized recommendations"
-        )
+    # Get available user IDs
+    available_user_ids = get_available_user_ids()
     
-    with col2:
-        st.markdown("<br>", unsafe_allow_html=True)  # Spacing
-        if st.button("🔍 Load My Profile", type="primary"):
-            st.session_state.user_id_to_view = user_id
+    # User ID input with Enter key support using form
+    with st.form("user_id_form", clear_on_submit=False):
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            user_id_input = st.text_input(
+                "Enter Your User ID",
+                value=st.session_state.get('user_id_to_view', ''),
+                placeholder="e.g., user_001",
+                help="Enter your user ID and press Enter or click Load"
+            )
+        
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)  # Spacing
+            submitted = st.form_submit_button("🔍 Load My Profile", type="primary")
+        
+        # Handle form submission (Enter key or button click)
+        if submitted and user_id_input:
+            st.session_state.user_id_to_view = user_id_input
+            st.rerun()
+    
+    # Show available user IDs
+    if available_user_ids:
+        with st.expander("📋 Available Test User IDs", expanded=False):
+            st.markdown("**Click a user ID to load their profile:**")
+            # Display in columns for better layout
+            cols = st.columns(5)
+            for idx, uid in enumerate(available_user_ids):
+                with cols[idx % 5]:
+                    if st.button(uid, key=f"user_btn_{uid}", use_container_width=True):
+                        st.session_state.user_id_to_view = uid
+                        st.rerun()
     
     # Use session state to persist user_id
     if 'user_id_to_view' not in st.session_state:
@@ -73,8 +108,10 @@ def get_user_profile_from_db(user_id: str) -> Optional[Dict[str, Any]]:
         from src.recommend.signal_mapper import map_signals_to_triggers
         from src.db.connection import get_user_signals
         
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        
         # Get signals
-        signals_dict = get_user_signals(user_id, "180d")
+        signals_dict = get_user_signals(user_id, "180d", db_path)
         if not signals_dict:
             return None
         
@@ -117,6 +154,7 @@ def render_persona_section(profile: Dict[str, Any]):
         'subscription_heavy': '🟠',
         'savings_builder': '🟢',
         'fee_fighter': '🔵',
+        'fraud_risk': '🚨',
         'insufficient_data': '⚪'
     }
     
@@ -164,7 +202,8 @@ def get_recommendations_from_db(user_id: str) -> list:
     try:
         from src.db.connection import database_transaction
         
-        with database_transaction() as conn:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        with database_transaction(db_path) as conn:
             # Get recent recommendations (last 30 days, approved or pending)
             results = conn.execute("""
                 SELECT 
@@ -261,7 +300,8 @@ def mark_recommendation_viewed(rec_id: str):
         from src.db.connection import database_transaction
         from datetime import datetime
         
-        with database_transaction() as conn:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        with database_transaction(db_path) as conn:
             conn.execute("""
                 UPDATE recommendations
                 SET viewed_at = ?
