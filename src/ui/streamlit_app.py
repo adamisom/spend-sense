@@ -3,6 +3,17 @@ SpendSense Operator Dashboard - Main Entry Point
 Provides comprehensive view of system operations and user analytics
 """
 import streamlit as st
+
+# CRITICAL: set_page_config() must be the FIRST Streamlit command
+# Must come before any other Streamlit commands or imports that use Streamlit
+st.set_page_config(
+    page_title="SpendSense Operator Dashboard",
+    page_icon="💰",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Now safe to import other modules
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -20,14 +31,6 @@ from src.ui.pages.data_quality import render_data_quality
 from src.ui.pages.performance_metrics import render_performance_metrics
 from src.ui.pages.system_logs import render_system_logs
 from loguru import logger
-
-# Configure Streamlit page
-st.set_page_config(
-    page_title="SpendSense Operator Dashboard",
-    page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
 
 # Custom CSS for better styling
 st.markdown("""
