@@ -428,17 +428,3 @@ def render_user_analytics():
     
     render_user_list(df)
 
-# Streamlit multi-page routing: When accessed via /user_analytics URL,
-# Streamlit executes this file directly and runs module-level code.
-# Initialize session state and render the page.
-if 'db_path' not in st.session_state:
-    st.session_state.db_path = "db/spend_sense.db"
-
-# Render the page (executes when file is run as a Streamlit page)
-# Note: This also executes on import, but Streamlit's execution model handles this correctly
-try:
-    render_user_analytics()
-except Exception as e:
-    st.error(f"Error rendering User Analytics: {e}")
-    logger.exception("Error in user_analytics page")
-

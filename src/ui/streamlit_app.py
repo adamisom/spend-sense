@@ -24,12 +24,12 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
 from src.db.connection import database_transaction
-from src.ui.pages.user_analytics import render_user_analytics
-from src.ui.pages.user_view import render_user_view
-from src.ui.pages.recommendation_engine import render_recommendation_engine
-from src.ui.pages.data_quality import render_data_quality
-from src.ui.pages.performance_metrics import render_performance_metrics
-from src.ui.pages.system_logs import render_system_logs
+from src.ui.components.user_analytics import render_user_analytics
+from src.ui.components.user_view import render_user_view
+from src.ui.components.recommendation_engine import render_recommendation_engine
+from src.ui.components.data_quality import render_data_quality
+from src.ui.components.performance_metrics import render_performance_metrics
+from src.ui.components.system_logs import render_system_logs
 from loguru import logger
 
 # Custom CSS for better styling
