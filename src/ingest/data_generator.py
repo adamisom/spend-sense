@@ -57,24 +57,30 @@ class SyntheticDataGenerator:
     def generate_user_profiles(self, count: int, include_edge_cases: bool = True) -> List[UserProfile]:
         """Generate diverse user profiles including edge cases."""
         profiles = []
-        edge_case_count = max(1, count // 10) if include_edge_cases else 0  # 10% edge cases
         
-        # Generate normal profiles
-        for i in range(count - edge_case_count):
-            profile = UserProfile(
-                user_id=f"user_{i+1:03d}",
-                income_level=random.choices(['low', 'medium', 'high'], weights=[30, 50, 20])[0],
-                credit_behavior=random.choices(['excellent', 'good', 'fair', 'poor'], weights=[20, 40, 25, 15])[0],
-                savings_behavior=random.choices(['aggressive', 'moderate', 'minimal', 'none'], weights=[15, 35, 35, 15])[0],
-                subscription_tendency=random.choices(['heavy', 'moderate', 'light'], weights=[20, 60, 20])[0],
-                financial_stress=random.choice([True, False])
-            )
-            profiles.append(profile)
+        # Generate diverse personas explicitly
+        persona_profiles = [
+            # High Utilization (5 users)
+            *[UserProfile(f"user_{i+1:03d}", 'medium', 'poor', 'none', 'moderate', True, 'high_utilization') for i in range(5)],
+            # Variable Income (5 users)  
+            *[UserProfile(f"user_{i+6:03d}", 'low', 'fair', 'minimal', 'light', True, 'variable_income') for i in range(5)],
+            # Subscription Heavy (5 users)
+            *[UserProfile(f"user_{i+11:03d}", 'medium', 'good', 'moderate', 'heavy', False, 'subscription_heavy') for i in range(5)],
+            # Savings Builder (5 users)
+            *[UserProfile(f"user_{i+16:03d}", 'high', 'excellent', 'aggressive', 'light', False, 'savings_builder') for i in range(5)],
+            # Fee Fighter (5 users)
+            *[UserProfile(f"user_{i+21:03d}", 'low', 'fair', 'minimal', 'moderate', True, 'fee_fighter') for i in range(5)],
+            # Mixed/Other (5 users)
+            *[UserProfile(f"user_{i+26:03d}", 
+                random.choices(['low', 'medium', 'high'], weights=[30, 50, 20])[0],
+                random.choices(['excellent', 'good', 'fair', 'poor'], weights=[20, 40, 25, 15])[0],
+                random.choices(['aggressive', 'moderate', 'minimal', 'none'], weights=[15, 35, 35, 15])[0],
+                random.choices(['heavy', 'moderate', 'light'], weights=[20, 60, 20])[0],
+                random.choice([True, False]),
+                None) for i in range(5)]
+        ]
         
-        # Generate edge case profiles
-        if include_edge_cases:
-            edge_cases = self._generate_edge_case_profiles(edge_case_count, len(profiles))
-            profiles.extend(edge_cases)
+        profiles.extend(persona_profiles[:count])
         
         return profiles
     
@@ -278,8 +284,18 @@ class SyntheticDataGenerator:
             
             credit_limit = round(base_limit, 2)
             
-            # Current balance (utilization)
-            if profile.credit_behavior == 'poor' or profile.scenario == 'high_utilization_and_subscription_heavy':
+            # Current balance (utilization) - based on scenario/persona
+            if profile.scenario == 'high_utilization':
+                utilization = random.uniform(0.6, 0.9)  # High utilization
+            elif profile.scenario == 'savings_builder':
+                utilization = random.uniform(0.0, 0.2)  # Low utilization
+            elif profile.scenario == 'variable_income':
+                utilization = random.uniform(0.3, 0.6)  # Moderate
+            elif profile.scenario == 'subscription_heavy':
+                utilization = random.uniform(0.4, 0.7)  # Moderate-high
+            elif profile.scenario == 'fee_fighter':
+                utilization = random.uniform(0.2, 0.5)  # Low-moderate
+            elif profile.credit_behavior == 'poor' or profile.scenario == 'high_utilization_and_subscription_heavy':
                 utilization = random.uniform(0.7, 0.95)  # High utilization
             elif profile.credit_behavior == 'fair':
                 utilization = random.uniform(0.3, 0.7)
@@ -370,6 +386,13 @@ class SyntheticDataGenerator:
             )
             transactions.extend(payment_transactions)
         
+        # Generate bank fees (for fee_fighter persona)
+        if profile.scenario == 'fee_fighter' and checking_accounts:
+            fee_transactions = self._generate_bank_fees(
+                profile, checking_accounts[0], start_date, end_date
+            )
+            transactions.extend(fee_transactions)
+        
         return transactions
 
     def _generate_income_transactions(self, profile: UserProfile, account: Dict[str, Any], 
@@ -382,7 +405,7 @@ class SyntheticDataGenerator:
         annual_income = random.uniform(income_min, income_max)
         
         # Most people get paid bi-weekly or monthly
-        if profile.scenario == 'variable_income_gig_worker':
+        if profile.scenario == 'variable_income' or profile.scenario == 'variable_income_gig_worker':
             pay_frequency = random.choice([7, 14, 21, 35, 45])  # Variable
             monthly_income = annual_income / 12
             pay_amount_base = monthly_income / 2
@@ -396,7 +419,7 @@ class SyntheticDataGenerator:
         current_date = start_date
         while current_date <= end_date:
             # Add some variability to pay amounts
-            if profile.scenario == 'variable_income_gig_worker':
+            if profile.scenario == 'variable_income' or profile.scenario == 'variable_income_gig_worker':
                 pay_amount = random.uniform(pay_amount_base * 0.3, pay_amount_base * 1.8)
             else:
                 pay_amount = random.uniform(pay_amount_base * 0.95, pay_amount_base * 1.05)
@@ -416,7 +439,7 @@ class SyntheticDataGenerator:
             transactions.append(transaction)
             
             # Next pay date
-            if profile.scenario == 'variable_income_gig_worker':
+            if profile.scenario == 'variable_income' or profile.scenario == 'variable_income_gig_worker':
                 current_date += timedelta(days=random.randint(pay_frequency - 5, pay_frequency + 10))
             else:
                 current_date += timedelta(days=pay_frequency)
@@ -432,7 +455,9 @@ class SyntheticDataGenerator:
             return transactions
         
         # Determine number of subscriptions based on tendency
-        if profile.subscription_tendency == 'heavy':
+        if profile.scenario == 'subscription_heavy':
+            subscription_count = random.randint(8, 15)  # Many subscriptions
+        elif profile.subscription_tendency == 'heavy':
             subscription_count = random.randint(5, 12)
         elif profile.subscription_tendency == 'moderate':
             subscription_count = random.randint(2, 6)
@@ -440,7 +465,7 @@ class SyntheticDataGenerator:
             subscription_count = random.randint(0, 3)
         
         # Edge case adjustments
-        if profile.scenario == 'high_utilization_and_subscription_heavy':
+        if profile.scenario == 'high_utilization_and_subscription_heavy' or profile.scenario == 'subscription_heavy':
             subscription_count = max(6, subscription_count)
         elif profile.scenario == 'sparse_transaction_history':
             subscription_count = min(1, subscription_count)
