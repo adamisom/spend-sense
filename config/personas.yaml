@@ -104,7 +104,7 @@ personas:
     
   fee_fighter:
     name: "Fee Fighter"
-    priority: 3  # Between subscription-heavy (3) and savings-builder (4)
+    priority: 5  # Fixed: was duplicate of variable_income (3), now unique
     description: "Users incurring excessive bank fees that could be avoided"
     criteria:
       - field: "monthly_bank_fees"

@@ -119,10 +119,19 @@ def validate_persona_config(personas: Dict[str, PersonaConfig]) -> List[str]:
     
     # Check criteria field names (should match UserSignals schema)
     valid_fields = {
+        # Credit signals
         'credit_utilization_max', 'has_interest_charges', 'is_overdue', 'minimum_payment_only',
+        # Income signals
         'income_pay_gap', 'cash_flow_buffer', 'income_variability',
+        # Subscription signals
         'subscription_count', 'monthly_subscription_spend', 'subscription_share',
+        # Savings signals
         'savings_growth_rate', 'monthly_savings_inflow', 'emergency_fund_months',
+        # Bank fee signals
+        'monthly_bank_fees', 'bank_fee_count', 'has_overdraft_fees', 'has_atm_fees', 'has_maintenance_fees',
+        # Fraud detection signals
+        'fraud_transaction_count', 'fraud_rate', 'has_fraud_history', 'fraud_risk_score',
+        # Data quality flags
         'insufficient_data', 'data_quality_score'
     }
     
