@@ -21,7 +21,8 @@ def render_data_quality():
     
     # Get data quality metrics
     try:
-        metrics = get_data_quality_metrics()
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        metrics = get_data_quality_metrics(db_path)
         
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -80,10 +81,12 @@ def render_data_quality():
         logger.error(f"Error loading data quality: {e}")
         st.error(f"Error: {str(e)}")
 
-def get_data_quality_metrics() -> dict:
+def get_data_quality_metrics(db_path: str = None) -> dict:
     """Get data quality metrics from database."""
+    if db_path is None:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
     try:
-        with database_transaction() as conn:
+        with database_transaction(db_path) as conn:
             # Get all signals with quality scores
             results = conn.execute("""
                 SELECT 

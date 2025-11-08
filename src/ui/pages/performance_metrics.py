@@ -21,7 +21,8 @@ def render_performance_metrics():
     
     try:
         # Calculate performance metrics
-        metrics = calculate_performance_metrics()
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        metrics = calculate_performance_metrics(db_path)
         
         # Key metrics
         col1, col2, col3, col4 = st.columns(4)
@@ -141,10 +142,12 @@ def render_performance_metrics():
         logger.error(f"Error loading performance metrics: {e}")
         st.error(f"Error: {str(e)}")
 
-def calculate_performance_metrics() -> dict:
+def calculate_performance_metrics(db_path: str = None) -> dict:
     """Calculate performance metrics from database."""
+    if db_path is None:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
     try:
-        with database_transaction() as conn:
+        with database_transaction(db_path) as conn:
             # Get recommendation generation times (if we track them)
             # For now, return basic metrics
             total_recs = conn.execute("SELECT COUNT(*) FROM recommendations").fetchone()[0]

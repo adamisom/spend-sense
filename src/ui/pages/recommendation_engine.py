@@ -43,7 +43,8 @@ def render_recommendation_engine():
     
     # Fetch recommendations
     try:
-        recommendations = get_approval_queue(limit=limit, status=api_status)
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
         
         if not recommendations:
             st.info("📝 No recommendations found")
@@ -60,8 +61,10 @@ def render_recommendation_engine():
         logger.error(f"Error loading recommendations: {e}")
         st.error(f"Error loading recommendations: {str(e)}")
 
-def get_approval_queue(limit: int = 50, status: str = None) -> List[Dict[str, Any]]:
+def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None) -> List[Dict[str, Any]]:
     """Get approval queue from database."""
+    if db_path is None:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
     try:
         from src.recommend.content_schema import load_content_catalog
         
@@ -75,7 +78,7 @@ def get_approval_queue(limit: int = 50, status: str = None) -> List[Dict[str, An
         else:
             where_clause = ""
         
-        with database_transaction() as conn:
+        with database_transaction(db_path) as conn:
             results = conn.execute(f"""
                 SELECT 
                     rec_id,
@@ -160,23 +163,27 @@ def render_recommendation_review_card(rec: Dict[str, Any], idx: int):
             col1, col2, col3 = st.columns([1, 1, 4])
             with col1:
                 if st.button("✅ Approve", key=f"approve_{rec['rec_id']}"):
-                    approve_recommendation(rec['rec_id'], approved=True)
+                    db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+                    approve_recommendation(rec['rec_id'], approved=True, db_path=db_path)
                     st.success("Approved!")
                     st.rerun()
             with col2:
                 if st.button("❌ Reject", key=f"reject_{rec['rec_id']}"):
-                    approve_recommendation(rec['rec_id'], approved=False)
+                    db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+                    approve_recommendation(rec['rec_id'], approved=False, db_path=db_path)
                     st.warning("Rejected!")
                     st.rerun()
         
         st.markdown("---")
 
-def approve_recommendation(rec_id: str, approved: bool):
+def approve_recommendation(rec_id: str, approved: bool, db_path: str = None):
     """Approve or reject a recommendation."""
+    if db_path is None:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
     try:
         from src.db.connection import database_transaction
         
-        with database_transaction() as conn:
+        with database_transaction(db_path) as conn:
             conn.execute("""
                 UPDATE recommendations 
                 SET approved = ?, delivered = ?
