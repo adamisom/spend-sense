@@ -162,6 +162,14 @@ def render_sidebar():
         st.session_state.last_refresh = datetime.now()
         st.rerun()
     
+    # Quick Actions
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("⚡ Quick Actions")
+    
+    if st.sidebar.button("🔧 Compute Signals", help="Compute signals for all users (may take a few minutes)"):
+        st.session_state.compute_signals = True
+        st.rerun()
+    
     # System health in sidebar
     st.sidebar.markdown("---")
     st.sidebar.subheader("🏥 System Health")
@@ -248,11 +256,50 @@ def render_system_overview():
             st.success(f"✅ Active - {health['users_with_signals']} users processed")
         else:
             st.error("❌ No user signals found")
+            st.info("💡 Click '🔧 Compute Signals' in the sidebar to generate signals for all users")
+
+def compute_signals_from_dashboard(db_path: str = "db/spend_sense.db"):
+    """Compute signals for all users from dashboard."""
+    try:
+        import subprocess
+        import sys
+        
+        # Run signal computation script
+        result = subprocess.run(
+            [sys.executable, "scripts/compute_signals.py", "--db-path", db_path],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minute timeout
+        )
+        
+        if result.returncode == 0:
+            return True, result.stdout
+        else:
+            return False, result.stderr
+    except subprocess.TimeoutExpired:
+        return False, "Signal computation timed out after 5 minutes"
+    except Exception as e:
+        return False, str(e)
 
 def main():
     """Main dashboard application."""
     # Initialize session state
     initialize_session_state()
+    
+    # Handle signal computation request
+    if st.session_state.get('compute_signals', False):
+        st.session_state.compute_signals = False  # Reset flag
+        
+        with st.spinner("Computing signals for all users... This may take a few minutes."):
+            success, message = compute_signals_from_dashboard(st.session_state.db_path)
+        
+        if success:
+            st.success(f"✅ Signal computation complete! {message}")
+            st.session_state.last_refresh = datetime.now()
+            st.rerun()
+        else:
+            st.error(f"❌ Signal computation failed: {message}")
+            st.info("💡 You can also run: `python scripts/compute_signals.py` from the command line")
     
     # Auto-refresh logic
     if st.session_state.auto_refresh:

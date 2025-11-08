@@ -26,13 +26,28 @@ def render_data_quality():
         # Summary metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Avg Data Quality", f"{metrics['avg_quality']:.2f}")
+            quality_value = metrics['avg_quality']
+            quality_delta = None
+            if quality_value == 0.0 and metrics['total_users'] > 0:
+                quality_delta = "⚠️ Signals needed"
+            st.metric("Avg Data Quality", f"{quality_value:.2f}", delta=quality_delta)
         with col2:
             st.metric("Users with Low Quality", metrics['low_quality_count'])
         with col3:
             st.metric("Users with Errors", metrics['error_count'])
         with col4:
             st.metric("Total Users Analyzed", metrics['total_users'])
+        
+        # Show warning if no signals
+        if metrics['total_users'] == 0:
+            st.warning("⚠️ No user signals found in database")
+            st.info("""
+            **💡 To compute signals:**
+            1. Click "🔧 Compute Signals" in the sidebar, OR
+            2. Run: `python scripts/compute_signals.py`
+            
+            Signals are required for data quality analysis and persona classification.
+            """)
         
         st.markdown("---")
         

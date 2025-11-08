@@ -57,6 +57,13 @@ def get_user_data(db_path: str) -> pd.DataFrame:
                 df['credit_utilization_max'] = df['parsed_signals'].apply(
                     lambda x: x.get('credit_utilization_max')
                 )
+                # Extract fraud signals
+                df['has_fraud_history'] = df['parsed_signals'].apply(
+                    lambda x: x.get('has_fraud_history', False)
+                )
+                df['fraud_risk_score'] = df['parsed_signals'].apply(
+                    lambda x: x.get('fraud_risk_score', 0.0)
+                )
             else:
                 # Add empty columns for consistency
                 df['data_quality_score'] = 0.0
@@ -134,7 +141,14 @@ def render_persona_analysis(df: pd.DataFrame):
     persona_dist = get_persona_distribution(df)
     
     if not persona_dist:
-        st.warning("No persona data available")
+        st.warning("⚠️ No persona data available")
+        st.info("""
+        **💡 To generate persona data:**
+        1. Click "🔧 Compute Signals" in the sidebar, OR
+        2. Run from command line: `python scripts/compute_signals.py`
+        
+        This will compute signals for all users and enable persona classification.
+        """)
         return
     
     col1, col2 = st.columns([2, 1])
@@ -159,6 +173,83 @@ def render_persona_analysis(df: pd.DataFrame):
         for persona, count in sorted(persona_dist.items(), key=lambda x: x[1], reverse=True):
             percentage = (count / sum(counts) * 100) if sum(counts) > 0 else 0
             st.markdown(f"- **{persona.replace('_', ' ').title()}**: {count} ({percentage:.1f}%)")
+
+def render_fraud_analysis(df: pd.DataFrame):
+    """Render fraud detection analysis."""
+    st.subheader("🚨 Fraud Detection Analysis")
+    
+    if df.empty or 'parsed_signals' not in df.columns:
+        st.warning("No signal data available for fraud analysis")
+        return
+    
+    # Extract fraud signals
+    fraud_data = []
+    for _, row in df.iterrows():
+        if row.get('parsed_signals'):
+            signals = row['parsed_signals']
+            fraud_data.append({
+                'user_id': row.get('user_id'),
+                'has_fraud_history': signals.get('has_fraud_history', False),
+                'fraud_transaction_count': signals.get('fraud_transaction_count', 0),
+                'fraud_rate': signals.get('fraud_rate', 0.0),
+                'fraud_risk_score': signals.get('fraud_risk_score', 0.0)
+            })
+    
+    if not fraud_data:
+        st.info("No fraud signal data available")
+        return
+    
+    fraud_df = pd.DataFrame(fraud_data)
+    
+    # Fraud metrics
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        users_with_fraud = fraud_df['has_fraud_history'].sum()
+        st.metric("Users with Fraud", f"{users_with_fraud}", 
+                 help="Number of users with at least one fraud transaction")
+    
+    with col2:
+        total_fraud_txns = fraud_df['fraud_transaction_count'].sum()
+        st.metric("Total Fraud Transactions", f"{total_fraud_txns}",
+                 help="Total number of fraud transactions across all users")
+    
+    with col3:
+        avg_fraud_rate = fraud_df['fraud_rate'].mean() * 100
+        st.metric("Avg Fraud Rate", f"{avg_fraud_rate:.2f}%",
+                 help="Average fraud rate across all users")
+    
+    with col4:
+        high_risk_users = (fraud_df['fraud_risk_score'] >= 0.1).sum()
+        st.metric("High Risk Users", f"{high_risk_users}",
+                 help="Users with fraud risk score >= 0.1")
+    
+    # Fraud risk distribution
+    if not fraud_df['fraud_risk_score'].empty:
+        st.markdown("**Fraud Risk Score Distribution:**")
+        risk_df = pd.DataFrame({'fraud_risk_score': fraud_df['fraud_risk_score']})
+        fig = px.histogram(
+            risk_df,
+            x='fraud_risk_score',
+            nbins=20,
+            title="Fraud Risk Score Distribution",
+            labels={'fraud_risk_score': 'Fraud Risk Score', 'count': 'Number of Users'}
+        )
+        fig.add_vline(x=0.1, line_dash="dash", line_color="orange",
+                     annotation_text="0.1 (Elevated Risk)")
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Users with fraud
+    users_with_fraud_df = fraud_df[fraud_df['has_fraud_history'] == True]
+    if not users_with_fraud_df.empty:
+        st.markdown("**Users with Fraud History:**")
+        display_cols = ['user_id', 'fraud_transaction_count', 'fraud_rate', 'fraud_risk_score']
+        st.dataframe(
+            users_with_fraud_df[display_cols].sort_values('fraud_risk_score', ascending=False),
+            use_container_width=True
+        )
+    else:
+        st.info("✅ No users with fraud history detected")
 
 def render_data_quality_analysis(df: pd.DataFrame):
     """Render data quality analysis."""
@@ -311,7 +402,12 @@ def render_user_analytics():
     
     if df.empty:
         st.error("No user data found. Please ensure the database is populated and the path is correct.")
-        st.info("💡 **Tip**: Use the data generator and signal computation tools to create sample data.")
+        st.info("""
+        **💡 Quick Setup:**
+        1. Generate data: `python -m src.ingest.data_generator --users 50`
+        2. Load data: `python scripts/load_data.py --validate`
+        3. Compute signals: Click "🔧 Compute Signals" in sidebar or run `python scripts/compute_signals.py`
+        """)
         return
     
     # Render different sections
@@ -319,6 +415,9 @@ def render_user_analytics():
     st.markdown("---")
     
     render_persona_analysis(df)
+    st.markdown("---")
+    
+    render_fraud_analysis(df)
     st.markdown("---")
     
     render_data_quality_analysis(df)
