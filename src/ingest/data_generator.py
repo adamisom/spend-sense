@@ -406,7 +406,7 @@ class SyntheticDataGenerator:
         
         # Most people get paid bi-weekly or monthly
         if profile.scenario == 'variable_income' or profile.scenario == 'variable_income_gig_worker':
-            pay_frequency = random.choice([7, 14, 21, 35, 45])  # Variable
+            pay_frequency = random.choice([45, 50, 55, 60])  # Gaps > 45 days for variable_income persona
             monthly_income = annual_income / 12
             pay_amount_base = monthly_income / 2
         else:
@@ -756,8 +756,13 @@ class SyntheticDataGenerator:
             if not profile:
                 continue
             
-            # APR based on credit behavior
-            if profile.credit_behavior == 'excellent':
+            # APR based on credit behavior and persona
+            # For savings_builder and fee_fighter, set lower/no APR to avoid matching high_utilization
+            if profile.scenario == 'savings_builder':
+                apr = 0.0  # No interest charges for savings builders
+            elif profile.scenario == 'fee_fighter':
+                apr = random.uniform(0, 5)  # Very low APR
+            elif profile.credit_behavior == 'excellent':
                 apr = random.uniform(12.99, 18.99)
             elif profile.credit_behavior == 'good':
                 apr = random.uniform(16.99, 22.99)
