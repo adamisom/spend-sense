@@ -168,7 +168,7 @@ def compute_credit_signals(accounts_df: pd.DataFrame, liabilities_df: pd.DataFra
         return signals
     
     # Credit utilization
-    credit_accounts = accounts_df[accounts_df['type'] == 'credit card']
+    credit_accounts = accounts_df[accounts_df['subtype'] == 'credit card']
     if not credit_accounts.empty:
         utilizations = []
         for _, account in credit_accounts.iterrows():
