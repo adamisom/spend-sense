@@ -105,12 +105,7 @@ def render_user_view():
             legend_html = "<div style='margin-bottom: 1rem;'>"
             for persona_id, color in persona_colors.items():
                 persona_name = persona_names.get(persona_id, persona_id)
-                legend_html += f"""
-                <div style='display: flex; align-items: center; margin: 0.25rem 0;'>
-                    <div style='width: 20px; height: 20px; background-color: {color}; border: 2px solid {color}; border-radius: 3px; margin-right: 0.5rem;'></div>
-                    <span style='font-size: 0.85rem;'>{persona_name}</span>
-                </div>
-                """
+                legend_html += f"<div style='display: flex; align-items: center; margin: 0.25rem 0;'><div style='width: 20px; height: 20px; background-color: {color}; border: 2px solid {color}; border-radius: 3px; margin-right: 0.5rem;'></div><span style='font-size: 0.85rem;'>{persona_name}</span></div>"
             legend_html += "</div>"
             st.markdown(legend_html, unsafe_allow_html=True)
             
@@ -134,14 +129,7 @@ def render_user_view():
                 # Create button with colored border indicator
                 indicator = color_indicators.get(persona_id, '⚪')
                 button_label = f"{indicator} {uid}"
-                button_html = f"""
-                <style>
-                    button[kind="secondary"][data-testid="baseButton-secondary"][id*="sidebar_user_{uid}"] {{
-                        border: 3px solid {color} !important;
-                        border-radius: 0.5rem !important;
-                    }}
-                </style>
-                """
+                button_html = f"<style>button[kind=\"secondary\"][data-testid=\"baseButton-secondary\"][id*=\"sidebar_user_{uid}\"] {{ border: 3px solid {color} !important; border-radius: 0.5rem !important; }}</style>"
                 st.markdown(button_html, unsafe_allow_html=True)
                 
                 if st.button(button_label, key=f"sidebar_user_{uid}", use_container_width=True):
@@ -206,12 +194,7 @@ def render_user_view():
             for idx, (persona_id, color) in enumerate(persona_colors.items()):
                 with legend_cols[idx % 7]:
                     persona_name = persona_names.get(persona_id, persona_id)
-                    legend_html = f"""
-                    <div style='text-align: center; margin-bottom: 0.5rem;'>
-                        <div style='width: 30px; height: 30px; background-color: {color}; border: 2px solid {color}; border-radius: 4px; margin: 0 auto 0.25rem;'></div>
-                        <span style='font-size: 0.75rem; display: block;'>{persona_name}</span>
-                    </div>
-                    """
+                    legend_html = f"<div style='text-align: center; margin-bottom: 0.5rem;'><div style='width: 30px; height: 30px; background-color: {color}; border: 2px solid {color}; border-radius: 4px; margin: 0 auto 0.25rem;'></div><span style='font-size: 0.75rem; display: block;'>{persona_name}</span></div>"
                     st.markdown(legend_html, unsafe_allow_html=True)
             
             st.markdown("**Click a user ID below to quickly load their profile:**")
@@ -237,14 +220,7 @@ def render_user_view():
                     # Create button with colored border indicator
                     indicator = color_indicators.get(persona_id, '⚪')
                     button_label = f"{indicator} {uid}"
-                    button_html = f"""
-                    <style>
-                        button[kind="secondary"][data-testid="baseButton-secondary"][id*="main_user_btn_{uid}"] {{
-                            border: 3px solid {color} !important;
-                            border-radius: 0.5rem !important;
-                        }}
-                    </style>
-                    """
+                    button_html = f"<style>button[kind=\"secondary\"][data-testid=\"baseButton-secondary\"][id*=\"main_user_btn_{uid}\"] {{ border: 3px solid {color} !important; border-radius: 0.5rem !important; }}</style>"
                     st.markdown(button_html, unsafe_allow_html=True)
                     
                     if st.button(button_label, key=f"main_user_btn_{uid}", use_container_width=True):
