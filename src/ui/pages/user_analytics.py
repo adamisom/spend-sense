@@ -225,7 +225,7 @@ def render_fraud_analysis(df: pd.DataFrame):
                  help="Users with fraud risk score >= 0.1")
     
     # Fraud risk distribution
-    if not fraud_df['fraud_risk_score'].empty:
+    if 'fraud_risk_score' in fraud_df.columns and len(fraud_df['fraud_risk_score'].dropna()) > 0:
         st.markdown("**Fraud Risk Score Distribution:**")
         risk_df = pd.DataFrame({'fraud_risk_score': fraud_df['fraud_risk_score']})
         fig = px.histogram(
