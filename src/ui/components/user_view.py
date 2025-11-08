@@ -120,18 +120,30 @@ def render_user_view():
                 persona_id = user_personas.get(uid, 'insufficient_data')
                 color = persona_colors.get(persona_id, '#6c757d')
                 
-                # Create button with colored border using custom CSS
-                button_style = f"""
+                # Create button with colored border indicator
+                # Use colored square emoji based on persona
+                color_indicators = {
+                    'high_utilization': '🔴',
+                    'variable_income': '🟡',
+                    'subscription_heavy': '🟠',
+                    'savings_builder': '🟢',
+                    'fee_fighter': '🔵',
+                    'fraud_risk': '🟣',
+                    'insufficient_data': '⚪'
+                }
+                indicator = color_indicators.get(persona_id, '⚪')
+                button_label = f"{indicator} {uid}"
+                button_html = f"""
                 <style>
-                    div[data-testid="stButton"] > button[kind="secondary"][data-testid="baseButton-secondary"][id*="sidebar_user_{uid}"] {{
+                    button[kind="secondary"][data-testid="baseButton-secondary"][id*="sidebar_user_{uid}"] {{
                         border: 3px solid {color} !important;
                         border-radius: 0.5rem !important;
                     }}
                 </style>
                 """
-                st.markdown(button_style, unsafe_allow_html=True)
+                st.markdown(button_html, unsafe_allow_html=True)
                 
-                if st.button(uid, key=f"sidebar_user_{uid}", use_container_width=True):
+                if st.button(button_label, key=f"sidebar_user_{uid}", use_container_width=True):
                     st.session_state.user_id_to_view = uid
                     st.rerun()
             if len(available_user_ids) > 20:
@@ -210,18 +222,30 @@ def render_user_view():
                 color = persona_colors.get(persona_id, '#6c757d')
                 
                 with cols[idx % num_cols]:
-                    # Create button with colored border using custom CSS
-                    button_style = f"""
+                    # Create button with colored border indicator
+                    # Use colored square emoji based on persona
+                color_indicators = {
+                    'high_utilization': '🔴',
+                    'variable_income': '🟡',
+                    'subscription_heavy': '🟠',
+                    'savings_builder': '🟢',
+                    'fee_fighter': '🔵',
+                    'fraud_risk': '🟣',
+                    'insufficient_data': '⚪'
+                }
+                indicator = color_indicators.get(persona_id, '⚪')
+                button_label = f"{indicator} {uid}"
+                    button_html = f"""
                     <style>
-                        div[data-testid="stButton"] > button[kind="secondary"][data-testid="baseButton-secondary"][id*="main_user_btn_{uid}"] {{
+                        button[kind="secondary"][data-testid="baseButton-secondary"][id*="main_user_btn_{uid}"] {{
                             border: 3px solid {color} !important;
                             border-radius: 0.5rem !important;
                         }}
                     </style>
                     """
-                    st.markdown(button_style, unsafe_allow_html=True)
+                    st.markdown(button_html, unsafe_allow_html=True)
                     
-                    if st.button(uid, key=f"main_user_btn_{uid}", use_container_width=True):
+                    if st.button(button_label, key=f"main_user_btn_{uid}", use_container_width=True):
                         st.session_state.user_id_to_view = uid
                         st.rerun()
             if len(available_user_ids) > 20:
