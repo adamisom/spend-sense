@@ -25,15 +25,24 @@ STREAMLIT_PASSWORD=your_secure_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
-**Optional (for hashed password):**
+**Optional (for hashed password - more secure):**
 ```
 STREAMLIT_PASSWORD_HASH=sha256_hash_of_password
 ```
 
 **To generate password hash:**
 ```bash
+# Method 1: Using the test script
+python scripts/test_auth.py your_password_here
+
+# Method 2: Using Python directly
 python3 -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
 ```
+
+**Security Note**: 
+- Plain text password (`STREAMLIT_PASSWORD`) is easier to set up but less secure
+- Hashed password (`STREAMLIT_PASSWORD_HASH`) is more secure (password never stored in plain text)
+- If both are set, `STREAMLIT_PASSWORD_HASH` takes precedence
 
 ### Step 3: Deploy
 
@@ -91,12 +100,41 @@ To persist database across deployments:
    - Mount path: `/app/db`
    - This will persist the database file
 
+## Testing Authentication Locally
+
+Before deploying, test authentication locally:
+
+```bash
+# Set password environment variable
+export STREAMLIT_PASSWORD=test123
+
+# Run Streamlit
+streamlit run src/ui/streamlit_app.py
+
+# Visit http://localhost:8501
+# Should see password prompt
+# Enter: test123
+# Should see dashboard
+```
+
+**Test password hashing:**
+```bash
+python scripts/test_auth.py your_password
+```
+
 ## Troubleshooting
 
 ### Dashboard shows "Password incorrect"
 - Check `STREAMLIT_PASSWORD` environment variable is set correctly
 - Verify no extra spaces in password
 - Try using `STREAMLIT_PASSWORD_HASH` instead
+- Test locally first with `export STREAMLIT_PASSWORD=test` before deploying
+
+### Authentication not working
+- Verify environment variable is set in Railway dashboard
+- Check Railway logs for errors
+- Ensure variable name is exactly `STREAMLIT_PASSWORD` (not `STREAMLIT_PASS` or similar)
+- Try redeploying after setting environment variable
 
 ### Database not found
 - Run initialization commands in Railway shell
