@@ -201,13 +201,19 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                 
                 # Parse decision_trace if present
                 decision_trace = None
-                if row.get('decision_trace'):
-                    import json
-                    try:
-                        decision_trace = json.loads(row['decision_trace'])
-                    except (json.JSONDecodeError, TypeError) as e:
-                        logger.warning(f"Error parsing decision_trace: {e}")
-                        decision_trace = None
+                try:
+                    # sqlite3.Row doesn't have .get(), use try/except instead
+                    trace_value = row['decision_trace']
+                    if trace_value:
+                        import json
+                        try:
+                            decision_trace = json.loads(trace_value)
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.warning(f"Error parsing decision_trace: {e}")
+                            decision_trace = None
+                except (KeyError, IndexError):
+                    # Column doesn't exist or is None
+                    decision_trace = None
                 
                 recommendations.append({
                     "rec_id": row['rec_id'],
