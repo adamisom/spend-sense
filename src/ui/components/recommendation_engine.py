@@ -59,17 +59,7 @@ def render_recommendation_engine():
     # Fetch recommendations
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
-        
-        # Always show debug info prominently when troubleshooting
-        st.info(f"🔍 **Debug**: Querying with status=`{status_filter}`, limit=`{limit}`, db=`{db_path}`")
-        
         recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
-        
-        # Show results immediately
-        if recommendations:
-            st.success(f"✅ Found {len(recommendations)} recommendations!")
-        else:
-            st.warning(f"⚠️ No recommendations returned from query")
         
         if not recommendations:
             # Show helpful debug info
