@@ -19,6 +19,7 @@ DATABASE_PATH=/app/db/spend_sense.db
 ```
 
 **Optional - Password Protection:**
+
 ```
 STREAMLIT_PASSWORD=your_password_here
 ```
