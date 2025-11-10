@@ -84,6 +84,7 @@
 | - Criteria: ≥$20/month fees OR overdraft fees OR ≥3 fee transactions | ✅ | Implemented |
 | **Persona 6: Bonus** | ✅ | **Fraud Risk** (Priority 1 - highest) |
 | - Criteria: Fraud history OR fraud risk score ≥0.1 OR fraud rate ≥1% | ✅ | Implemented |
+| - **Data Generator**: ✅ `user_001` is generated with fraud transactions and assigned fraud_risk persona |
 | Prioritization logic | ✅ | Priority-based tie-breaking |
 | Clear criteria documentation | ✅ | `config/personas.yaml` with full criteria |
 
