@@ -224,34 +224,33 @@ class RecommendationEngine:
         """Generate human-readable rationale for recommendation.
         
         Only mentions signals relevant to the content item's triggers,
-        ensuring the explanation is tailored and relevant.
+        ensuring the explanation is tailored and relevant. Prioritizes
+        the most specific/relevant trigger for the content type.
         """
         import random
         
-        # Get matching triggers for this specific content item
+        # Get matching triggers for this specific content item (ONLY triggers that match this content)
         matching_triggers = [t for t in triggers if t in item.signal_triggers]
         
         if not matching_triggers:
             # Fallback if no triggers match
             return f"This content matches your {persona_match.persona_name.lower()} financial profile."
         
-        # Build rationale based on content-specific triggers only
-        rationale_parts = []
+        # Prioritize triggers based on content type and specificity
+        # For credit articles, prioritize credit utilization over interest charges
+        # For subscription articles, prioritize subscription spend/count
+        prioritized_trigger = self._prioritize_trigger_for_content(matching_triggers, item)
         
-        # Map triggers to specific signal values and natural phrasing
-        trigger_details = []
+        # Get detail for the prioritized trigger
+        detail = self._get_trigger_detail(prioritized_trigger, signals)
         
-        for trigger in matching_triggers:
-            detail = self._get_trigger_detail(trigger, signals)
-            if detail:
-                trigger_details.append(detail)
-        
-        if not trigger_details:
-            # Fallback if no details available
-            trigger_explanations = explain_triggers_for_user(matching_triggers)
+        if not detail:
+            # Fallback if no detail available
+            trigger_explanations = explain_triggers_for_user([prioritized_trigger])
             if trigger_explanations:
-                return f"This is relevant because {trigger_explanations[0].lower()}."
-            return f"This content matches your {persona_match.persona_name.lower()} financial profile."
+                detail = trigger_explanations[0].lower()
+            else:
+                return f"This content matches your {persona_match.persona_name.lower()} financial profile."
         
         # Create natural, varied rationales
         opening_phrases = [
@@ -263,18 +262,107 @@ class RecommendationEngine:
         ]
         
         opening = random.choice(opening_phrases)
-        
-        # Use the most specific detail available
-        primary_detail = trigger_details[0]
-        
-        # Create natural sentence structure
-        if len(trigger_details) == 1:
-            rationale = f"{opening} because {primary_detail}."
-        else:
-            # If multiple relevant signals, mention the primary one
-            rationale = f"{opening} because {primary_detail}."
+        rationale = f"{opening} because {detail}."
         
         return rationale
+    
+    def _prioritize_trigger_for_content(self, matching_triggers: List[SignalTrigger], item: ContentItem) -> SignalTrigger:
+        """Select the most relevant trigger for this specific content item.
+        
+        Prioritizes triggers that are most specific to the content's purpose.
+        """
+        from src.recommend.content_schema import SignalTrigger
+        
+        # Priority order based on content type and title
+        content_id = item.content_id.lower()
+        title_lower = item.title.lower()
+        
+        # Credit-related content: prioritize credit utilization
+        if 'credit' in content_id or 'credit' in title_lower or 'utilization' in content_id or 'utilization' in title_lower or 'debt' in content_id or 'debt' in title_lower:
+            priority_order = [
+                SignalTrigger.HIGH_CREDIT_UTILIZATION,
+                SignalTrigger.IS_OVERDUE,
+                SignalTrigger.MINIMUM_PAYMENT_ONLY,
+                SignalTrigger.HAS_INTEREST_CHARGES
+            ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Subscription-related content: prioritize based on article focus
+        if 'subscription' in content_id or 'subscription' in title_lower:
+            # For audit/review articles, prioritize number of subscriptions
+            if 'audit' in content_id or 'audit' in title_lower or 'review' in content_id or 'review' in title_lower or 'tracker' in content_id or 'tracker' in title_lower:
+                priority_order = [
+                    SignalTrigger.MANY_SUBSCRIPTIONS,
+                    SignalTrigger.HIGH_SUBSCRIPTION_SHARE,
+                    SignalTrigger.HIGH_SUBSCRIPTION_SPEND
+                ]
+            # For negotiation/rate articles, prioritize spending amount
+            elif 'negotiate' in content_id or 'negotiate' in title_lower or 'rate' in content_id or 'rate' in title_lower:
+                priority_order = [
+                    SignalTrigger.HIGH_SUBSCRIPTION_SPEND,
+                    SignalTrigger.HIGH_SUBSCRIPTION_SHARE,
+                    SignalTrigger.MANY_SUBSCRIPTIONS
+                ]
+            # Default: prioritize spend
+            else:
+                priority_order = [
+                    SignalTrigger.HIGH_SUBSCRIPTION_SPEND,
+                    SignalTrigger.MANY_SUBSCRIPTIONS,
+                    SignalTrigger.HIGH_SUBSCRIPTION_SHARE
+                ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Income-related content: prioritize income variability
+        if 'income' in content_id or 'income' in title_lower or 'variable' in content_id or 'variable' in title_lower or 'gig' in content_id or 'gig' in title_lower:
+            priority_order = [
+                SignalTrigger.VARIABLE_INCOME,
+                SignalTrigger.HIGH_INCOME_VARIABILITY,
+                SignalTrigger.LOW_CASH_BUFFER
+            ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Savings-related content: prioritize savings signals
+        if 'savings' in content_id or 'savings' in title_lower or 'emergency' in content_id or 'emergency' in title_lower or 'invest' in content_id or 'invest' in title_lower:
+            priority_order = [
+                SignalTrigger.POSITIVE_SAVINGS,
+                SignalTrigger.LOW_EMERGENCY_FUND,
+                SignalTrigger.NEGATIVE_SAVINGS_GROWTH
+            ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Fee-related content: prioritize fee triggers
+        if 'fee' in content_id or 'fee' in title_lower or 'overdraft' in content_id or 'overdraft' in title_lower or 'atm' in content_id or 'atm' in title_lower:
+            priority_order = [
+                SignalTrigger.HIGH_BANK_FEES,
+                SignalTrigger.HAS_OVERDRAFT_FEES,
+                SignalTrigger.HAS_ATM_FEES,
+                SignalTrigger.HAS_MAINTENANCE_FEES
+            ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Fraud-related content: prioritize fraud triggers
+        if 'fraud' in content_id or 'fraud' in title_lower or 'protection' in content_id or 'protection' in title_lower:
+            priority_order = [
+                SignalTrigger.HAS_FRAUD_HISTORY,
+                SignalTrigger.HIGH_FRAUD_RISK,
+                SignalTrigger.ELEVATED_FRAUD_RATE
+            ]
+            for trigger in priority_order:
+                if trigger in matching_triggers:
+                    return trigger
+        
+        # Default: return first matching trigger
+        return matching_triggers[0]
     
     def _get_trigger_detail(self, trigger: SignalTrigger, signals: UserSignals) -> Optional[str]:
         """Get specific, natural-language detail for a trigger based on actual signal values."""
