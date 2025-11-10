@@ -116,3 +116,4 @@ CREATE INDEX idx_recommendations_user_created ON recommendations(user_id, create
 CREATE INDEX idx_feedback_user ON feedback(user_id);
 CREATE INDEX idx_feedback_rec ON feedback(rec_id);
 
+
