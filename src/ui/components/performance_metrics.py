@@ -41,9 +41,14 @@ def render_performance_metrics():
         st.subheader("📊 Performance Breakdown")
         
         # Compute time distribution
-        if 'compute_time_distribution' in metrics:
+        if 'compute_time_distribution' in metrics and metrics['compute_time_distribution']:
             compute_df = pd.DataFrame(metrics['compute_time_distribution'])
-            st.bar_chart(compute_df.set_index('range'))
+            if 'range' in compute_df.columns:
+                st.bar_chart(compute_df.set_index('range'))
+            else:
+                st.info("Performance distribution data not available yet")
+        else:
+            st.info("Performance distribution data not available yet")
         
         # Error rate over time (if we have historical data)
         st.subheader("📉 Error Rate Trends")
@@ -51,9 +56,11 @@ def render_performance_metrics():
         
         # API endpoint performance
         st.subheader("🔌 API Endpoint Performance")
-        if 'endpoint_performance' in metrics:
+        if 'endpoint_performance' in metrics and metrics['endpoint_performance']:
             endpoint_df = pd.DataFrame(metrics['endpoint_performance'])
             st.dataframe(endpoint_df, use_container_width=True)
+        else:
+            st.info("API endpoint performance data not available yet")
         
         # Relevance metrics
         st.subheader("🎯 Recommendation Relevance")
