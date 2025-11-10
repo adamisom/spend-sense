@@ -85,6 +85,9 @@ def get_persona_names() -> Dict[str, str]:
 
 def render_user_view():
     """Render user-facing view of recommendations."""
+    # Operator call-out: This is a mock of the end-user experience
+    st.info("👁️ **Operator View**: This page shows a mock of the end-user web application experience. Use this to preview how personalized recommendations appear to users.")
+    
     st.title("💰 My Financial Insights")
     
     # Get available user IDs
