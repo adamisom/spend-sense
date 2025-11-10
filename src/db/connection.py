@@ -122,6 +122,23 @@ def run_demographic_migration(db_path: str = "db/spend_sense.db"):
     except Exception as e:
         logger.warning(f"Demographic migration failed (may already be applied): {e}")
 
+def run_decision_trace_migration(db_path: str = "db/spend_sense.db"):
+    """Run migration to add decision_trace column to recommendations table if it doesn't exist."""
+    try:
+        with database_transaction(db_path) as conn:
+            # Check if decision_trace column exists
+            cursor = conn.execute("PRAGMA table_info(recommendations)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'decision_trace' not in columns:
+                conn.execute("ALTER TABLE recommendations ADD COLUMN decision_trace JSON")
+                logger.info("Applied migration: Added decision_trace column to recommendations table")
+            else:
+                logger.debug("decision_trace column already exists, no migration needed")
+                
+    except Exception as e:
+        logger.warning(f"Decision trace migration failed (may already be applied): {e}")
+
 def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_sense.db", force: bool = False):
     """Initialize database from schema file.
     
@@ -141,8 +158,9 @@ def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_s
                     result = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
                     if result:
                         logger.info(f"Database already initialized: {db_path} (use force=True to reinitialize)")
-                        # Run demographic migration for existing databases
+                        # Run migrations for existing databases
                         run_demographic_migration(db_path)
+                        run_decision_trace_migration(db_path)
                         return
                 except sqlite3.Error:
                     pass  # Table doesn't exist, proceed with initialization

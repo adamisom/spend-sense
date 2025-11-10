@@ -96,6 +96,7 @@ CREATE TABLE recommendations (
     approved BOOLEAN DEFAULT NULL,  -- NULL=pending, TRUE=approved, FALSE=rejected
     delivered BOOLEAN DEFAULT FALSE,
     viewed_at TIMESTAMP,  -- For content deduplication
+    decision_trace JSON,  -- Full audit trail of decision-making process
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

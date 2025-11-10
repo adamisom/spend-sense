@@ -29,6 +29,7 @@ class Recommendation:
     rationale: str  # "because" explanation
     priority_score: float
     match_reasons: List[str]  # Why this was recommended
+    decision_trace: Dict[str, Any]  # Full audit trail of decision-making
 
 class RecommendationEngine:
     """Main recommendation engine."""
@@ -57,32 +58,111 @@ class RecommendationEngine:
             List of Recommendation objects, sorted by priority
         """
         try:
+            # Initialize decision trace for auditability
+            base_trace = {
+                "user_id": user_id,
+                "timestamp": datetime.now().isoformat(),
+                "steps": []
+            }
+            
             # Step 1: Classify persona
             persona_match = classify_persona(signals)
             if not persona_match:
                 logger.warning(f"No persona match for user {user_id}")
                 return []
             
+            base_trace["steps"].append({
+                "step": 1,
+                "action": "persona_classification",
+                "result": {
+                    "persona_id": persona_match.persona_id,
+                    "persona_name": persona_match.persona_name,
+                    "confidence": persona_match.confidence,
+                    "matched_criteria": persona_match.matched_criteria
+                }
+            })
+            
             # Step 2: Map signals to triggers
             triggers = map_signals_to_triggers(signals)
+            base_trace["steps"].append({
+                "step": 2,
+                "action": "signal_to_trigger_mapping",
+                "result": {
+                    "triggers": [t.value for t in triggers],
+                    "signal_summary": {
+                        "credit_utilization_max": signals.credit_utilization_max,
+                        "subscription_count": signals.subscription_count,
+                        "monthly_subscription_spend": signals.monthly_subscription_spend,
+                        "has_interest_charges": signals.has_interest_charges,
+                        "is_overdue": signals.is_overdue,
+                        "data_quality_score": signals.data_quality_score
+                    }
+                }
+            })
             
             # Step 3: Get recently viewed content (for deduplication)
             recent_content_ids = self._get_recent_content_ids(user_id, exclude_recent_days)
+            base_trace["steps"].append({
+                "step": 3,
+                "action": "deduplication_check",
+                "result": {
+                    "recent_content_ids": recent_content_ids,
+                    "exclude_recent_days": exclude_recent_days
+                }
+            })
             
             # Step 4: Filter and score content
             candidate_items = self._filter_content(persona_match, triggers)
+            base_trace["steps"].append({
+                "step": 4,
+                "action": "content_filtering",
+                "result": {
+                    "candidate_count": len(candidate_items),
+                    "candidate_content_ids": [item.content_id for item in candidate_items]
+                }
+            })
             
             # Step 5: Check eligibility and deduplicate
             eligible_items = []
+            eligibility_results = []
             for item in candidate_items:
                 if item.content_id in recent_content_ids:
+                    eligibility_results.append({
+                        "content_id": item.content_id,
+                        "eligible": False,
+                        "reason": "recently_viewed"
+                    })
                     continue  # Skip recently viewed
                 
-                if self._check_eligibility(item, signals, user_id):
+                is_eligible = self._check_eligibility(item, signals, user_id)
+                eligibility_results.append({
+                    "content_id": item.content_id,
+                    "eligible": is_eligible,
+                    "reason": "eligibility_check"
+                })
+                
+                if is_eligible:
                     eligible_items.append(item)
+            
+            base_trace["steps"].append({
+                "step": 5,
+                "action": "eligibility_check",
+                "result": {
+                    "eligible_count": len(eligible_items),
+                    "eligibility_results": eligibility_results
+                }
+            })
             
             # Step 6: Score and rank
             scored_items = self._score_content(eligible_items, persona_match, triggers, signals)
+            base_trace["steps"].append({
+                "step": 6,
+                "action": "scoring_and_ranking",
+                "result": {
+                    "scored_count": len(scored_items),
+                    "top_scores": [(item.content_id, round(score, 2)) for item, score in scored_items[:max_recommendations]]
+                }
+            })
             
             # Step 7: Generate recommendations with rationales
             from src.guardrails.guardrails import Guardrails
@@ -97,6 +177,20 @@ class RecommendationEngine:
                 
                 match_reasons = self._get_match_reasons(item, persona_match, triggers)
                 
+                # Create decision trace for this specific recommendation
+                rec_trace = base_trace.copy()
+                rec_trace["steps"].append({
+                    "step": 7,
+                    "action": "recommendation_generation",
+                    "result": {
+                        "content_id": item.content_id,
+                        "final_score": round(score, 2),
+                        "match_reasons": match_reasons,
+                        "rationale": rationale,
+                        "content_type": item.type.value
+                    }
+                })
+                
                 recommendations.append(Recommendation(
                     rec_id=str(uuid.uuid4()),
                     content_id=item.content_id,
@@ -107,7 +201,8 @@ class RecommendationEngine:
                     reading_time_minutes=item.reading_time_minutes,
                     rationale=rationale,
                     priority_score=score,
-                    match_reasons=match_reasons
+                    match_reasons=match_reasons,
+                    decision_trace=rec_trace
                 ))
             
             logger.info(f"Generated {len(recommendations)} recommendations for user {user_id}")
@@ -533,19 +628,24 @@ def save_recommendations(
     """Save recommendations to database."""
     try:
         from src.db.connection import database_transaction
+        import json
         
         with database_transaction(db_path) as conn:
             for rec in recommendations:
+                # Convert decision_trace to JSON string
+                decision_trace_json = json.dumps(rec.decision_trace) if rec.decision_trace else None
+                
                 conn.execute("""
                     INSERT INTO recommendations 
-                    (rec_id, user_id, content_id, rationale, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    (rec_id, user_id, content_id, rationale, created_at, decision_trace)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """, (
                     rec.rec_id,
                     user_id,
                     rec.content_id,
                     rec.rationale,
-                    datetime.now().isoformat()
+                    datetime.now().isoformat(),
+                    decision_trace_json
                 ))
         
         logger.info(f"Saved {len(recommendations)} recommendations for user {user_id}")

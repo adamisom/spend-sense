@@ -102,7 +102,8 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     rationale,
                     created_at,
                     approved,
-                    delivered
+                    delivered,
+                    decision_trace
                 FROM recommendations
                 {where_clause}
                 ORDER BY created_at DESC
@@ -123,17 +124,27 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     None
                 )
                 
-                recommendations.append({
-                    "rec_id": row['rec_id'],
-                    "user_id": row['user_id'],
-                    "content_id": content_id,
-                    "title": content_item.title if content_item else "Unknown",
-                    "type": content_item.type if content_item else "unknown",
-                    "rationale": row['rationale'],
-                    "created_at": row['created_at'],
-                    "approved": row['approved'],
-                    "delivered": row['delivered']
-                })
+            # Parse decision_trace if present
+            decision_trace = None
+            if row.get('decision_trace'):
+                import json
+                try:
+                    decision_trace = json.loads(row['decision_trace'])
+                except (json.JSONDecodeError, TypeError):
+                    decision_trace = None
+            
+            recommendations.append({
+                "rec_id": row['rec_id'],
+                "user_id": row['user_id'],
+                "content_id": content_id,
+                "title": content_item.title if content_item else "Unknown",
+                "type": content_item.type if content_item else "unknown",
+                "rationale": row['rationale'],
+                "created_at": row['created_at'],
+                "approved": row['approved'],
+                "delivered": row['delivered'],
+                "decision_trace": decision_trace
+            })
             
             return recommendations
             
@@ -172,6 +183,36 @@ def render_recommendation_review_card(rec: Dict[str, Any], idx: int):
             </div>
         </div>
         """, unsafe_allow_html=True)
+        
+        # Decision Trace (auditability)
+        if rec.get('decision_trace'):
+            with st.expander("🔍 View Decision Trace (Audit Trail)", expanded=False):
+                trace = rec['decision_trace']
+                st.markdown("**Full audit trail of how this recommendation was generated:**")
+                st.json(trace)
+                
+                # Show step-by-step summary
+                if 'steps' in trace:
+                    st.markdown("**Step-by-Step Summary:**")
+                    for step in trace['steps']:
+                        step_num = step.get('step', '?')
+                        action = step.get('action', 'unknown')
+                        result = step.get('result', {})
+                        
+                        st.markdown(f"**Step {step_num}: {action.replace('_', ' ').title()}**")
+                        if isinstance(result, dict):
+                            # Show key results
+                            if 'persona_id' in result:
+                                st.caption(f"→ Persona: {result.get('persona_name', result.get('persona_id'))} (confidence: {result.get('confidence', 'N/A')})")
+                            if 'triggers' in result:
+                                st.caption(f"→ Triggers: {', '.join(result['triggers'])}")
+                            if 'candidate_count' in result:
+                                st.caption(f"→ Found {result['candidate_count']} candidate items")
+                            if 'eligible_count' in result:
+                                st.caption(f"→ {result['eligible_count']} items passed eligibility check")
+                            if 'final_score' in result:
+                                st.caption(f"→ Final score: {result['final_score']}")
+                        st.markdown("---")
         
         # Approve/Reject buttons (only show if pending)
         if rec['approved'] is None:
