@@ -59,8 +59,28 @@ except:
         touch "$INIT_FLAG"
         echo "✅ Data loaded!"
     else
-        echo "✅ Database already has data ($USER_COUNT users)"
-        touch "$INIT_FLAG"
+        # Check if signals exist
+        SIGNAL_COUNT=$(python3 -c "
+import sqlite3
+try:
+    conn = sqlite3.connect('$DB_PATH')
+    count = conn.execute(\"SELECT COUNT(*) FROM user_signals WHERE window = '180d'\").fetchone()[0]
+    conn.close()
+    print(count)
+except:
+    print(0)
+")
+        
+        if [ "$SIGNAL_COUNT" -eq "0" ]; then
+            echo "🔧 Users exist but no signals found, computing signals..."
+            python3 scripts/compute_signals.py
+            python3 scripts/generate_recommendations.py --all
+            touch "$INIT_FLAG"
+            echo "✅ Signals computed!"
+        else
+            echo "✅ Database already has data ($USER_COUNT users, $SIGNAL_COUNT signals)"
+            touch "$INIT_FLAG"
+        fi
     fi
 fi
 
