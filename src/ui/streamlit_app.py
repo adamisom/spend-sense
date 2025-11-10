@@ -297,22 +297,33 @@ def compute_signals_from_dashboard(db_path: str = "db/spend_sense.db"):
         import subprocess
         import sys
         
+        # Get project root (parent of src/)
+        project_root = Path(__file__).parent.parent.parent
+        script_path = project_root / "scripts" / "compute_signals.py"
+        
+        # Set environment with PYTHONPATH
+        env = os.environ.copy()
+        env['PYTHONPATH'] = str(project_root)
+        
         # Run signal computation script
         result = subprocess.run(
-            [sys.executable, "scripts/compute_signals.py", "--db-path", db_path],
+            [sys.executable, str(script_path), "--db-path", db_path],
             capture_output=True,
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=300,  # 5 minute timeout
+            cwd=str(project_root),  # Set working directory
+            env=env  # Pass environment with PYTHONPATH
         )
         
         if result.returncode == 0:
             return True, result.stdout
         else:
-            return False, result.stderr
+            error_msg = result.stderr or result.stdout or "Unknown error"
+            return False, error_msg
     except subprocess.TimeoutExpired:
         return False, "Signal computation timed out after 5 minutes"
     except Exception as e:
-        return False, str(e)
+        return False, f"Error running script: {str(e)}"
 
 def main():
     """Main dashboard application."""
