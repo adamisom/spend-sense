@@ -19,7 +19,8 @@ STREAMLIT_PASSWORD=your_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
-**Note**: 
+**Note**:
+
 - If you skip `STREAMLIT_PASSWORD`, the app will work without password protection (fine for dev/demo)
 - **For evaluators**: Set a password and share it with them (along with the Railway URL)
 
@@ -47,11 +48,10 @@ python scripts/generate_recommendations.py --all
 
 ## ✅ Smoke Test (2 minutes)
 
-### Test 1: Authentication
+### Test 1: Access
 
 - [ ] Visit Railway URL
-- [ ] See password prompt
-- [ ] Enter password → Dashboard loads
+- [ ] Dashboard loads directly (no password if `STREAMLIT_PASSWORD` not set)
 
 ### Test 2: System Overview
 
