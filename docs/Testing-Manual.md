@@ -667,8 +667,10 @@ sleep 5
 # 3. Check sidebar shows:
 #    - System Health indicator
 #    - Quick Stats (Users, Signal Coverage, etc.)
-#    - Database path setting
-#    - Refresh button
+#    - Navigation dropdown
+# 4. Check System Overview page shows:
+#    - "🔄 Refresh Data" button
+#    - "🔧 Compute Signals" button
 
 pkill -f streamlit
 ```
@@ -710,6 +712,88 @@ pkill -f streamlit
 ```
 
 **Expected**: All analytics sections render correctly with charts and data
+
+### Test 3.5: Recommendation Engine Page
+
+```bash
+make shell
+
+# Create test data with recommendations that have decision traces
+python -c "
+from src.db.connection import initialize_db, database_transaction, save_user_signals
+from src.features.schema import UserSignals
+from src.recommend.recommendation_engine import RecommendationEngine, save_recommendations
+from datetime import datetime
+
+initialize_db()
+
+user_id = 'rec_engine_test_user'
+with database_transaction() as conn:
+    conn.execute('''
+        INSERT OR REPLACE INTO users (user_id, consent_status, consent_date)
+        VALUES (?, ?, ?)
+    ''', (user_id, True, datetime.now().isoformat()))
+
+signals = UserSignals(
+    credit_utilization_max=0.75,
+    has_interest_charges=True,
+    subscription_count=3,
+    monthly_subscription_spend=50.0,
+    data_quality_score=0.9,
+    insufficient_data=False
+)
+save_user_signals(user_id, '180d', signals.model_dump())
+
+engine = RecommendationEngine()
+recs = engine.generate_recommendations(user_id, signals)
+save_recommendations(user_id, recs)
+
+print(f'✅ Created test user with {len(recs)} recommendations (with decision traces)')
+"
+
+# Start dashboard
+streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0 &
+sleep 5
+
+# Manual verification:
+# 1. Navigate to "Recommendation Engine" in sidebar
+# 2. Wait for page to load (may take a few seconds)
+# 3. Verify page displays:
+#    - Page explanation expander ("ℹ️ What is this page?")
+#    - Filter by Status dropdown (All, Pending, Approved, Rejected)
+#    - Limit number input
+#    - "🔄 Refresh" button (styled, full-width, secondary type)
+# 4. Verify recommendations list shows:
+#    - Recommendation cards with title, user ID, type, rationale
+#    - Status badges (Pending, Approved, Rejected)
+#    - "🔍 View Decision Trace (Audit Trail)" expander for each recommendation
+# 5. Click on a decision trace expander and verify:
+#    - Full JSON trace displays
+#    - Step-by-step summary shows persona classification, signal mapping, filtering, scoring
+# 6. Test "🔄 Refresh" button:
+#    - Click refresh button
+#    - Page should reload and show latest recommendations
+# 7. Test status filtering:
+#    - Change filter to "Pending" - should show only pending recommendations
+#    - Change filter to "Approved" - should show only approved recommendations
+# 8. Test approve/reject buttons (if recommendations are pending):
+#    - Click "✅ Approve" - recommendation should be marked as approved
+#    - Click "❌ Reject" - recommendation should be marked as rejected
+
+pkill -f streamlit
+```
+
+**Expected**: Recommendation Engine page displays recommendations with decision traces and refresh functionality works
+
+**✅ Pass Criteria**:
+
+- Recommendation Engine page loads (may take a few seconds)
+- Recommendations display with all details
+- Decision traces are visible and show complete audit trail
+- Refresh button works to reload recommendations
+- Status filtering works correctly
+- Approve/Reject buttons work (if pending recommendations exist)
+- No errors during page load or interactions
 
 ### Test 4: Evaluation Metrics Engine
 
@@ -911,7 +995,7 @@ pytest tests/ -v -k "test_evaluation or test_dashboard"
 
 ## Phase 4: End-User Interface & Enhanced Features
 
-**What it tests**: End-user interface, 5th persona, fairness metrics, and Phase 4 enhancements
+**What it tests**: End-user interface, 6 personas (including Fraud Risk), fairness metrics, decision traces, consent management, and Phase 4 enhancements
 
 **Prerequisites**:
 
@@ -967,15 +1051,21 @@ sleep 5
 # 3. Enter user ID: phase4_test_user
 # 4. Click "🔍 Load My Profile"
 # 5. Verify User View page displays:
+#    - Info box: "👁️ Operator View: This page shows a mock of the end-user web application experience"
+#    - Consent management section (grant/revoke consent button)
 #    - Persona card with icon and description
 #    - Matched criteria list
+#    - "🔄 Get New Recommendations" button
 #    - Recommendations section with cards
 #    - Each recommendation card shows:
 #      - Title and description
 #      - "Why this matters" rationale
+#      - Disclaimer: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
 #      - Reading time and type
 #      - "Learn More" button
 # 6. Verify recommendations are personalized and include rationales
+# 7. Test consent toggle: Revoke consent and verify recommendations are blocked
+# 8. Test "Get New Recommendations" button to generate fresh recommendations
 
 pkill -f streamlit
 ```
@@ -986,9 +1076,13 @@ pkill -f streamlit
 
 - User View page accessible from sidebar
 - User ID input and load button work
+- Consent management section displays and works
 - Persona card displays correctly with icon and description
+- "Get New Recommendations" button works
 - Recommendations display in user-friendly cards
 - Rationales are clear and personalized
+- Standardized disclaimer appears on all recommendations: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
+- Users without consent cannot see recommendations
 - No errors during page load
 
 ### Test 2: 5th Persona (Fee Fighter)
@@ -1216,7 +1310,10 @@ exit
 **✅ Pass Criteria** (Phase 4 Summary):
 
 - End-user interface (User View) displays correctly
-- 5th persona (Fee Fighter) classifies correctly
+- 6 personas classify correctly (High Utilization, Variable Income, Subscription-Heavy, Savings Builder, Fee Fighter, Fraud Risk)
+- Consent management works (users without consent blocked from recommendations)
+- Decision traces visible in Recommendation Engine page
+- Standardized disclaimers appear on all recommendations
 - Fairness metrics display in dashboard
 - Additional API endpoints work (if implemented)
 - End-to-end Phase 4 flow completes successfully
@@ -1237,8 +1334,11 @@ pytest tests/ -v -k "phase4 or fairness or user_view or fee_fighter"
 
 **Test Coverage** (Phase 4):
 
-- End-User Interface: User View page rendering, recommendation display
-- 5th Persona: Fee Fighter classification, criteria matching
+- End-User Interface: User View page rendering, recommendation display, consent management
+- Personas: All 6 personas classification (including Fraud Risk), criteria matching
+- Decision Traces: Full audit trail of recommendation generation process
+- Disclaimers: Standardized disclaimer text on all recommendations
 - Fairness Metrics: Demographic parity calculation, disparity detection
 - API Endpoints: User creation, consent management, recommendation actions
 - Relevance Metrics: Content-persona fit scoring (if implemented)
+- Recommendation Engine: Approval workflow, decision trace viewing, refresh functionality
