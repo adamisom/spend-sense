@@ -264,9 +264,10 @@ def render_recommendation_review_card(rec: Dict[str, Any], idx: int):
         """, unsafe_allow_html=True)
         
         # Decision Trace (auditability)
-        if rec.get('decision_trace'):
+        decision_trace = rec.get('decision_trace')
+        if decision_trace:
             with st.expander("🔍 View Decision Trace (Audit Trail)", expanded=False):
-                trace = rec['decision_trace']
+                trace = decision_trace
                 st.markdown("**Full audit trail of how this recommendation was generated:**")
                 st.json(trace)
                 
@@ -292,6 +293,20 @@ def render_recommendation_review_card(rec: Dict[str, Any], idx: int):
                             if 'final_score' in result:
                                 st.caption(f"→ Final score: {result['final_score']}")
                         st.markdown("---")
+        else:
+            # Show info that decision trace is not available for older recommendations
+            with st.expander("🔍 Decision Trace (Not Available)", expanded=False):
+                st.info("""
+                **Decision trace not available for this recommendation.**
+                
+                This recommendation was generated before decision trace auditability was added to the system.
+                
+                **To see decision traces:**
+                1. Go to **User View**
+                2. Select a user
+                3. Click **"🔄 Get New Recommendations"** to generate fresh recommendations with full audit trails
+                4. Return to this page to see the new recommendations with decision traces
+                """)
         
         # Approve/Reject buttons (only show if pending)
         if rec['approved'] is None:
