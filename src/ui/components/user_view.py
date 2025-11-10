@@ -398,14 +398,13 @@ def render_recommendations_section(user_id: str, profile: Dict[str, Any]):
         else:
             st.error("❌ Failed to generate recommendations. Please try again.")
     
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.header("💡 Recommendations for You")
-    with col2:
-        if st.button("🔄 Get New Recommendations", type="primary", use_container_width=True, 
-                     help="Generate fresh recommendations based on your latest financial data"):
-            st.session_state[f'generate_fresh_recs_{user_id}'] = True
-            st.rerun()
+    st.header("💡 Recommendations for You")
+    
+    # Get New Recommendations button - more prominent
+    if st.button("🔄 Get New Recommendations", type="primary", use_container_width=True, 
+                 help="Generate fresh recommendations based on your latest financial data"):
+        st.session_state[f'generate_fresh_recs_{user_id}'] = True
+        st.rerun()
     
     try:
         # Get recommendations from database
