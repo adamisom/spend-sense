@@ -6,6 +6,7 @@ set -e
 # Get PORT from environment (Railway sets this, defaults to 8000)
 PORT=${PORT:-8000}
 
+echo "PORT env var: ${PORT:-not set, using default}"
 echo "🚀 Starting Streamlit on port $PORT"
 
 # Run Streamlit with expanded PORT variable
