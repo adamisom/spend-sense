@@ -4,7 +4,6 @@ Provides comprehensive view of system operations and user analytics
 """
 import streamlit as st
 import os
-import hashlib
 
 # CRITICAL: set_page_config() must be the FIRST Streamlit command
 # Must come before any other Streamlit commands or imports that use Streamlit
@@ -15,20 +14,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Basic Authentication
+# Basic Authentication (plain text password for simplicity)
 def check_password():
     """Returns `True` if the user had the correct password."""
     
     def password_entered():
         """Checks whether a password entered by the user is correct."""
-        password_hash = os.getenv("STREAMLIT_PASSWORD_HASH")
         password = os.getenv("STREAMLIT_PASSWORD")
         
-        # Support both hashed and plain text passwords (plain text for easy setup)
-        if password_hash:
-            input_hash = hashlib.sha256(st.session_state["password"].encode()).hexdigest()
-            st.session_state["password_correct"] = input_hash == password_hash
-        elif password:
+        if password:
             st.session_state["password_correct"] = st.session_state["password"] == password
         else:
             # No password set - allow access (for local dev)
@@ -48,7 +42,7 @@ def check_password():
         return True
 
 # Check authentication (skip in local dev if no password set)
-if os.getenv("STREAMLIT_PASSWORD") or os.getenv("STREAMLIT_PASSWORD_HASH"):
+if os.getenv("STREAMLIT_PASSWORD"):
     check_password()
 
 # Now safe to import other modules

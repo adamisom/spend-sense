@@ -25,24 +25,7 @@ STREAMLIT_PASSWORD=your_secure_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
-**Optional (for hashed password - more secure):**
-```
-STREAMLIT_PASSWORD_HASH=sha256_hash_of_password
-```
-
-**To generate password hash:**
-```bash
-# Method 1: Using the test script
-python scripts/test_auth.py your_password_here
-
-# Method 2: Using Python directly
-python3 -c "import hashlib; print(hashlib.sha256('your_password'.encode()).hexdigest())"
-```
-
-**Security Note**: 
-- Plain text password (`STREAMLIT_PASSWORD`) is easier to set up but less secure
-- Hashed password (`STREAMLIT_PASSWORD_HASH`) is more secure (password never stored in plain text)
-- If both are set, `STREAMLIT_PASSWORD_HASH` takes precedence
+**Note**: Plain text password is used for simplicity. For high-trust, low-user scenarios this is sufficient.
 
 ### Step 3: Deploy
 
@@ -117,17 +100,12 @@ streamlit run src/ui/streamlit_app.py
 # Should see dashboard
 ```
 
-**Test password hashing:**
-```bash
-python scripts/test_auth.py your_password
-```
 
 ## Troubleshooting
 
 ### Dashboard shows "Password incorrect"
 - Check `STREAMLIT_PASSWORD` environment variable is set correctly
 - Verify no extra spaces in password
-- Try using `STREAMLIT_PASSWORD_HASH` instead
 - Test locally first with `export STREAMLIT_PASSWORD=test` before deploying
 
 ### Authentication not working
