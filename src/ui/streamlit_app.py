@@ -323,8 +323,14 @@ def main():
     if st.session_state.get('compute_signals', False):
         st.session_state.compute_signals = False  # Reset flag
         
-        with st.spinner("Computing signals for all users... This may take a few minutes."):
+        # Show clear status at top of page
+        st.info("🔄 Computing signals for all users... This may take 1-2 minutes. Please wait.")
+        
+        with st.spinner("⏳ Processing... This may take a few minutes."):
             success, message = compute_signals_from_dashboard(st.session_state.db_path)
+        
+        # Clear the info message
+        st.empty()
         
         if success:
             # Extract user count from message if available
@@ -332,17 +338,24 @@ def main():
             user_match = re.search(r'(\d+)\s*users?', message, re.IGNORECASE)
             user_count = user_match.group(1) if user_match else "all"
             
-            st.success(f"✅ Signal computation complete for {user_count} users!")
+            st.success(f"✅ **Signal computation complete for {user_count} users!**")
             st.info("""
+            **What happened:**
+            - Behavioral signals have been computed for all users
+            - User personas should now appear (colored icons instead of gray in User View)
+            
             **Next steps:**
-            1. User personas should now appear (colored icons instead of gray)
-            2. To generate recommendations, run: `python scripts/generate_recommendations.py --all`
-            3. Refresh the page to see updated data
+            1. The page will refresh automatically in a moment
+            2. Go to "User View" and click a user ID to see their persona
+            3. Recommendations will be auto-generated (or run `python scripts/generate_recommendations.py --all`)
             """)
             st.session_state.last_refresh = datetime.now()
+            import time
+            time.sleep(2)  # Give user time to read the message
             st.rerun()
         else:
-            st.error(f"❌ Signal computation failed: {message}")
+            st.error(f"❌ **Signal computation failed**")
+            st.error(f"Error: {message}")
             st.info("💡 You can also run: `python scripts/compute_signals.py` from the command line")
     
     # Auto-refresh logic
