@@ -188,35 +188,11 @@ def get_system_health() -> dict:
         }
 
 def render_sidebar():
-    """Render sidebar with navigation and controls."""
+    """Render sidebar with system health and stats."""
     st.sidebar.title("🎯 SpendSense Operator")
     st.sidebar.markdown("---")
     
-    # Navigation
-    st.sidebar.subheader("📊 Navigation")
-    page = st.sidebar.selectbox(
-        "Select View",
-        ["User View", "System Overview", "User Analytics", "Recommendation Engine", 
-         "Data Quality", "Performance Metrics", "System Logs"]
-    )
-    
-    st.sidebar.markdown("---")
-    
-    # Manual refresh button
-    if st.sidebar.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale."):
-        st.session_state.last_refresh = datetime.now()
-        st.rerun()
-    
-    # Quick Actions
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("⚡ Quick Actions")
-    
-    if st.sidebar.button("🔧 Compute Signals", help="Compute signals for all users (may take 1-2 minutes). After completion, user personas will appear and you can view personalized recommendations."):
-        st.session_state.compute_signals = True
-        st.rerun()
-    
     # System health in sidebar
-    st.sidebar.markdown("---")
     st.sidebar.subheader("🏥 System Health")
     
     health = get_system_health()
@@ -287,6 +263,19 @@ def render_system_overview():
     st.title("📊 System Overview")
     st.markdown("High-level system health and key metrics")
     
+    # Action buttons at top
+    col1, col2, col3 = st.columns([1, 1, 4])
+    with col1:
+        if st.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale.", use_container_width=True):
+            st.session_state.last_refresh = datetime.now()
+            st.rerun()
+    with col2:
+        if st.button("🔧 Compute Signals", help="Compute signals for all users (may take 1-2 minutes). After completion, user personas will appear and you can view personalized recommendations.", use_container_width=True):
+            st.session_state.compute_signals = True
+            st.rerun()
+    
+    st.markdown("---")
+    
     # Get system metrics
     health = get_system_health()
     
@@ -341,7 +330,7 @@ def render_system_overview():
             st.success(f"✅ Active - {health['users_with_signals']} users processed")
         else:
             st.error("❌ No user signals found")
-            st.info("💡 Click '🔧 Compute Signals' in the sidebar to generate signals for all users")
+            st.info("💡 Click '🔧 Compute Signals' above to generate signals for all users")
 
 def compute_signals_from_dashboard(db_path: str = "db/spend_sense.db"):
     """Compute signals for all users from dashboard."""
@@ -454,12 +443,38 @@ def main():
             st.info("💡 You can also run: `python scripts/compute_signals.py` from the command line")
     
     # Note: Auto-refresh removed - Streamlit doesn't support true auto-refresh well
-    # Users can click "🔄 Refresh Data" button in sidebar to manually refresh
+    # Users can click "🔄 Refresh Data" button to manually refresh
     
-    # Render sidebar and get selected page
-    selected_page = render_sidebar()
+    # Top navigation
+    st.title("🎯 SpendSense Operator Dashboard")
+    
+    # Navigation at top
+    pages = ["System Overview", "User View", "User Analytics", "Recommendation Engine", 
+             "Data Quality", "Performance Metrics", "System Logs"]
+    
+    # Use session state to track current page
+    if 'current_page' not in st.session_state:
+        st.session_state.current_page = "System Overview"
+    
+    # Navigation selectbox at top
+    page_selector = st.selectbox(
+        "Navigate to:",
+        pages,
+        index=pages.index(st.session_state.current_page) if st.session_state.current_page in pages else 0,
+        key="page_selector"
+    )
+    
+    if page_selector != st.session_state.current_page:
+        st.session_state.current_page = page_selector
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # Render sidebar (health stats only)
+    render_sidebar()
     
     # Route to selected page
+    selected_page = st.session_state.current_page
     if selected_page == "User View":
         render_user_view()
     elif selected_page == "System Overview":

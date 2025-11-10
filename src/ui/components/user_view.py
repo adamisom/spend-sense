@@ -98,48 +98,6 @@ def render_user_view():
     persona_colors = get_persona_colors()
     persona_names = get_persona_names()
     
-    # Show available user IDs in sidebar for easy access
-    if available_user_ids:
-        with st.sidebar:
-            st.markdown("### 📋 Test User IDs")
-            
-            # Persona legend
-            st.markdown("**Persona Colors:**")
-            legend_html = "<div style='margin-bottom: 1rem;'>"
-            for persona_id, color in persona_colors.items():
-                persona_name = persona_names.get(persona_id, persona_id)
-                legend_html += f"<div style='display: flex; align-items: center; margin: 0.25rem 0;'><div style='width: 20px; height: 20px; background-color: {color}; border: 2px solid {color}; border-radius: 3px; margin-right: 0.5rem;'></div><span style='font-size: 0.85rem;'>{persona_name}</span></div>"
-            legend_html += "</div>"
-            st.markdown(legend_html, unsafe_allow_html=True)
-            
-            st.markdown("**Click to load:**")
-            # Show in a more compact format with colored borders
-            # Define color indicators once
-            color_indicators = {
-                'high_utilization': '🔴',
-                'variable_income': '🟡',
-                'subscription_heavy': '🟠',
-                'savings_builder': '🟢',
-                'fee_fighter': '🔵',
-                'fraud_risk': '🟣',
-                'insufficient_data': '⚪'
-            }
-            
-            # Show all users (no pagination needed for 30 users)
-            for uid in available_user_ids:
-                persona_id = user_personas.get(uid, 'insufficient_data')
-                color = persona_colors.get(persona_id, '#6c757d')
-                
-                # Create button with colored border indicator
-                indicator = color_indicators.get(persona_id, '⚪')
-                button_label = f"{indicator} {uid}"
-                button_html = f"<style>button[kind=\"secondary\"][data-testid=\"baseButton-secondary\"][id*=\"sidebar_user_{uid}\"] {{ border: 3px solid {color} !important; border-radius: 0.5rem !important; }}</style>"
-                st.markdown(button_html, unsafe_allow_html=True)
-                
-                if st.button(button_label, key=f"sidebar_user_{uid}", use_container_width=True):
-                    st.session_state.user_id_to_view = uid
-                    st.rerun()
-    
     # Use session state to persist user_id
     if 'user_id_to_view' not in st.session_state:
         st.session_state.user_id_to_view = ""
@@ -230,7 +188,7 @@ def render_user_view():
                         st.rerun()
             st.markdown("---")
         
-        st.info("👆 Enter your user ID above, or click one of the user IDs in the sidebar or below to see personalized financial insights")
+        st.info("👆 Enter your user ID above, or click one of the user IDs below to see personalized financial insights")
         return
     
     user_id = st.session_state.user_id_to_view
