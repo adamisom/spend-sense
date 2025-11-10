@@ -39,5 +39,5 @@ FROM development as production
 # Copy source code (only in production to avoid rebuild on every change)
 COPY . .
 
-# Production command
-CMD ["python", "-m", "src.api.routes"]
+# Production command - Streamlit for Railway deployment
+CMD ["streamlit", "run", "src/ui/streamlit_app.py", "--server.port", "8080", "--server.address", "0.0.0.0", "--server.headless", "true"]

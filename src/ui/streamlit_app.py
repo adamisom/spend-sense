@@ -3,6 +3,8 @@ SpendSense Operator Dashboard - Main Entry Point
 Provides comprehensive view of system operations and user analytics
 """
 import streamlit as st
+import os
+import hashlib
 
 # CRITICAL: set_page_config() must be the FIRST Streamlit command
 # Must come before any other Streamlit commands or imports that use Streamlit
@@ -12,6 +14,42 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# Basic Authentication
+def check_password():
+    """Returns `True` if the user had the correct password."""
+    
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        password_hash = os.getenv("STREAMLIT_PASSWORD_HASH")
+        password = os.getenv("STREAMLIT_PASSWORD")
+        
+        # Support both hashed and plain text passwords (plain text for easy setup)
+        if password_hash:
+            input_hash = hashlib.sha256(st.session_state["password"].encode()).hexdigest()
+            st.session_state["password_correct"] = input_hash == password_hash
+        elif password:
+            st.session_state["password_correct"] = st.session_state["password"] == password
+        else:
+            # No password set - allow access (for local dev)
+            st.session_state["password_correct"] = True
+    
+    if "password_correct" not in st.session_state:
+        # First run, show input for password
+        st.text_input("Enter password", type="password", on_change=password_entered, key="password")
+        st.stop()
+    elif not st.session_state["password_correct"]:
+        # Password incorrect, show input + error
+        st.text_input("Enter password", type="password", on_change=password_entered, key="password")
+        st.error("😕 Password incorrect")
+        st.stop()
+    else:
+        # Password correct
+        return True
+
+# Check authentication (skip in local dev if no password set)
+if os.getenv("STREAMLIT_PASSWORD") or os.getenv("STREAMLIT_PASSWORD_HASH"):
+    check_password()
 
 # Now safe to import other modules
 import pandas as pd
@@ -69,7 +107,8 @@ st.markdown("""
 def initialize_session_state():
     """Initialize Streamlit session state variables."""
     if 'db_path' not in st.session_state:
-        st.session_state.db_path = "db/spend_sense.db"
+        # Use environment variable if set, otherwise default
+        st.session_state.db_path = os.getenv("DATABASE_PATH", "db/spend_sense.db")
     
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = None
