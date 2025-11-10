@@ -30,6 +30,10 @@ ENV PYTHONUNBUFFERED=1
 # Expose port (Railway sets PORT env var)
 EXPOSE 8080
 
-# Run Streamlit
-CMD streamlit run src/ui/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+# Copy and make init script executable
+COPY scripts/railway_init.sh /app/scripts/railway_init.sh
+RUN chmod +x /app/scripts/railway_init.sh
+
+# Run initialization then start Streamlit
+CMD /app/scripts/railway_init.sh && streamlit run src/ui/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
 
