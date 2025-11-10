@@ -205,6 +205,9 @@ def render_user_view():
                 st.error(f"❌ User ID '{user_id}' not found. Please check your user ID and try again.")
                 return
             
+            # Display consent management
+            render_consent_section(user_id)
+            
             # Display persona
             render_persona_section(profile)
             
@@ -215,6 +218,93 @@ def render_user_view():
         logger.error(f"Error loading user profile: {e}")
         st.error(f"❌ Error loading profile: {str(e)}")
         st.info("💡 Make sure the database is initialized and contains user data")
+
+def get_user_consent_status(user_id: str) -> Optional[bool]:
+    """Get user's consent status from database."""
+    try:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        with database_transaction(db_path) as conn:
+            result = conn.execute("""
+                SELECT consent_status FROM users WHERE user_id = ?
+            """, (user_id,)).fetchone()
+            
+            if result:
+                return bool(result['consent_status'])
+            return None
+    except Exception as e:
+        logger.error(f"Error getting consent status: {e}")
+        return None
+
+def toggle_user_consent(user_id: str) -> bool:
+    """Toggle user's consent status."""
+    try:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        with database_transaction(db_path) as conn:
+            # Get current status
+            result = conn.execute("""
+                SELECT consent_status FROM users WHERE user_id = ?
+            """, (user_id,)).fetchone()
+            
+            if not result:
+                logger.error(f"User {user_id} not found")
+                return False
+            
+            # Toggle consent
+            new_status = not bool(result['consent_status'])
+            conn.execute("""
+                UPDATE users 
+                SET consent_status = ?
+                WHERE user_id = ?
+            """, (new_status, user_id))
+            
+            logger.info(f"Toggled consent for {user_id}: {new_status}")
+            return True
+    except Exception as e:
+        logger.error(f"Error toggling consent: {e}")
+        return False
+
+def render_consent_section(user_id: str):
+    """Render consent management section."""
+    # Handle consent toggle
+    if st.session_state.get(f'toggle_consent_{user_id}', False):
+        st.session_state[f'toggle_consent_{user_id}'] = False  # Reset flag
+        
+        with st.spinner("Updating consent status..."):
+            success = toggle_user_consent(user_id)
+        
+        if success:
+            st.success("✅ Consent status updated!")
+            import time
+            time.sleep(0.5)
+            st.rerun()
+        else:
+            st.error("❌ Failed to update consent status.")
+    
+    # Get current consent status
+    consent_status = get_user_consent_status(user_id)
+    
+    if consent_status is None:
+        st.warning("⚠️ Could not retrieve consent status")
+        return
+    
+    # Display consent status and button
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        if consent_status:
+            st.info("✅ **Data Sharing Consent**: You have consented to data sharing. Recommendations are enabled.")
+        else:
+            st.warning("⚠️ **Data Sharing Consent**: You have not consented to data sharing. Recommendations are disabled.")
+    
+    with col2:
+        button_label = "🚫 Revoke Consent" if consent_status else "✅ Grant Consent"
+        button_type = "secondary" if consent_status else "primary"
+        
+        if st.button(button_label, type=button_type, use_container_width=True,
+                     help="Toggle your data sharing consent status"):
+            st.session_state[f'toggle_consent_{user_id}'] = True
+            st.rerun()
+    
+    st.markdown("---")
 
 def get_user_profile_from_db(user_id: str) -> Optional[Dict[str, Any]]:
     """Get user profile directly from database."""
