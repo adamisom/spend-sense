@@ -79,6 +79,49 @@ def database_transaction(db_path: str = "db/spend_sense.db"):
     if conn:
         conn.close()
 
+def run_demographic_migration(db_path: str = "db/spend_sense.db"):
+    """Run migration to add demographic columns to users table if they don't exist."""
+    try:
+        with database_transaction(db_path) as conn:
+            # Check if demographic columns exist
+            cursor = conn.execute("PRAGMA table_info(users)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            migrations_needed = []
+            if 'age' not in columns:
+                migrations_needed.append("ALTER TABLE users ADD COLUMN age INTEGER")
+            if 'age_range' not in columns:
+                migrations_needed.append("ALTER TABLE users ADD COLUMN age_range TEXT")
+            if 'gender' not in columns:
+                migrations_needed.append("ALTER TABLE users ADD COLUMN gender TEXT")
+            if 'race_ethnicity' not in columns:
+                migrations_needed.append("ALTER TABLE users ADD COLUMN race_ethnicity TEXT")
+            if 'demographic_group' not in columns:
+                migrations_needed.append("ALTER TABLE users ADD COLUMN demographic_group TEXT")
+            
+            # Run migrations
+            for migration in migrations_needed:
+                conn.execute(migration)
+                logger.info(f"Applied migration: {migration}")
+            
+            # Check if index exists
+            indexes = conn.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='index' AND name='idx_users_demographic_group'
+            """).fetchone()
+            
+            if not indexes:
+                conn.execute("CREATE INDEX idx_users_demographic_group ON users(demographic_group)")
+                logger.info("Created index: idx_users_demographic_group")
+            
+            if migrations_needed:
+                logger.info("Demographic migration completed successfully")
+            else:
+                logger.debug("Demographic columns already exist, no migration needed")
+                
+    except Exception as e:
+        logger.warning(f"Demographic migration failed (may already be applied): {e}")
+
 def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_sense.db", force: bool = False):
     """Initialize database from schema file.
     
@@ -98,6 +141,8 @@ def initialize_db(schema_path: str = "db/schema.sql", db_path: str = "db/spend_s
                     result = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").fetchone()
                     if result:
                         logger.info(f"Database already initialized: {db_path} (use force=True to reinitialize)")
+                        # Run demographic migration for existing databases
+                        run_demographic_migration(db_path)
                         return
                 except sqlite3.Error:
                     pass  # Table doesn't exist, proceed with initialization

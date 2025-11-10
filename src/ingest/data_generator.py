@@ -170,21 +170,69 @@ class SyntheticDataGenerator:
         return edge_cases
     
     def generate_users_csv(self, profiles: List[UserProfile]) -> List[Dict[str, Any]]:
-        """Generate users CSV data."""
+        """Generate users CSV data with demographic information."""
         users = []
+        
+        # Demographic distributions for realistic diversity
+        age_ranges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+']
+        age_range_weights = [15, 25, 20, 18, 12, 10]  # More common in middle ages
+        
+        genders = ['M', 'F', 'Other', 'Prefer not to say']
+        gender_weights = [48, 48, 2, 2]  # Roughly equal M/F, small other categories
+        
+        race_ethnicities = ['White', 'Black', 'Hispanic', 'Asian', 'Other']
+        race_weights = [60, 13, 18, 6, 3]  # Rough US distribution
+        
         for idx, profile in enumerate(profiles):
             # Set 80-90% consent rate (10-20% without consent)
             # Use a deterministic pattern based on user index to ensure reproducibility
             # Every 8th or 9th user (roughly 12-13%) will not consent
             consent_status = (idx % 9) != 0  # ~89% consent rate
             
+            # Generate demographic data (deterministic based on user_id for reproducibility)
+            random.seed(hash(profile.user_id) % 10000)  # Use user_id as seed for consistency
+            
+            # Age and age range
+            age_range = random.choices(age_ranges, weights=age_range_weights)[0]
+            if age_range == '18-24':
+                age = random.randint(18, 24)
+            elif age_range == '25-34':
+                age = random.randint(25, 34)
+            elif age_range == '35-44':
+                age = random.randint(35, 44)
+            elif age_range == '45-54':
+                age = random.randint(45, 54)
+            elif age_range == '55-64':
+                age = random.randint(55, 64)
+            else:  # 65+
+                age = random.randint(65, 85)
+            
+            # Gender
+            gender = random.choices(genders, weights=gender_weights)[0]
+            
+            # Race/ethnicity
+            race_ethnicity = random.choices(race_ethnicities, weights=race_weights)[0]
+            
+            # Create demographic group for fairness analysis
+            # Format: age_range_gender_race (e.g., "25-34_F_White")
+            demographic_group = f"{age_range}_{gender}_{race_ethnicity}"
+            
             user = {
                 'user_id': profile.user_id,
                 'created_at': self.fake.date_time_between(start_date='-2y', end_date='now').isoformat(),
                 'consent_status': consent_status,
-                'consent_date': self.fake.date_time_between(start_date='-1y', end_date='now').isoformat() if consent_status else None
+                'consent_date': self.fake.date_time_between(start_date='-1y', end_date='now').isoformat() if consent_status else None,
+                'age': age,
+                'age_range': age_range,
+                'gender': gender,
+                'race_ethnicity': race_ethnicity,
+                'demographic_group': demographic_group
             }
             users.append(user)
+            
+            # Reset random seed for next iteration
+            random.seed(self.seed + idx)
+        
         return users
     
     def save_to_csv(self, data: List[Dict[str, Any]], filename: str, output_dir: str = "data/synthetic"):

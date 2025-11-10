@@ -7,7 +7,13 @@ CREATE TABLE users (
     user_id TEXT PRIMARY KEY,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     consent_status BOOLEAN DEFAULT FALSE,
-    consent_date TIMESTAMP
+    consent_date TIMESTAMP,
+    -- Demographic fields for fairness analysis
+    age INTEGER,
+    age_range TEXT,  -- e.g., "18-24", "25-34", "35-44", "45-54", "55-64", "65+"
+    gender TEXT,  -- e.g., "M", "F", "Other", "Prefer not to say"
+    race_ethnicity TEXT,  -- e.g., "White", "Black", "Hispanic", "Asian", "Other"
+    demographic_group TEXT  -- Combined group for fairness analysis, e.g., "25-34_F_White"
 );
 
 -- Accounts (Plaid-style structure)
@@ -115,5 +121,6 @@ CREATE INDEX idx_accounts_user_type ON accounts(user_id, type);
 CREATE INDEX idx_recommendations_user_created ON recommendations(user_id, created_at);
 CREATE INDEX idx_feedback_user ON feedback(user_id);
 CREATE INDEX idx_feedback_rec ON feedback(rec_id);
+CREATE INDEX idx_users_demographic_group ON users(demographic_group);
 
 
