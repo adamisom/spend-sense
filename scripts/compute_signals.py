@@ -51,10 +51,10 @@ def compute_user_signals(user_id: str, window_days: int = 180, db_path: str = "d
                     WHERE user_id = ? AND date >= ?
                     ORDER BY date DESC
                 """, conn, params=(user_id, cutoff_date))
-            except sqlite3.OperationalError:
+            except (sqlite3.OperationalError, Exception) as e:
                 # Fallback if transaction_type/status columns don't exist
                 try:
-                    # Try with is_fraud column
+                    # Try with is_fraud column (most common case)
                     transactions_df = pd.read_sql_query("""
                         SELECT
                             transaction_id, account_id, date, amount, merchant_name,
@@ -67,7 +67,7 @@ def compute_user_signals(user_id: str, window_days: int = 180, db_path: str = "d
                     # Add missing columns with defaults
                     transactions_df['transaction_type'] = None
                     transactions_df['status'] = None
-                except sqlite3.OperationalError:
+                except (sqlite3.OperationalError, Exception):
                     # Final fallback if is_fraud also doesn't exist
                     transactions_df = pd.read_sql_query("""
                         SELECT
