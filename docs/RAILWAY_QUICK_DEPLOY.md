@@ -3,26 +3,32 @@
 ## 🚀 Deploy (5 minutes)
 
 ### 1. Create Project
-- Go to https://railway.app
+
+- Go to <https://railway.app>
 - Click **"New Project"**
 - Select **"Deploy from GitHub repo"**
 - Choose `spend-sense` repository
 - Railway auto-detects Dockerfile
 
 ### 2. Set Environment Variables
-In Railway dashboard → Your service → **Variables** tab:
+
+In Railway dashboard → Your service → **Variables** tab → Click **"New Variable"**:
 
 ```
 STREAMLIT_PASSWORD=your_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
+**Note**: If you skip `STREAMLIT_PASSWORD`, the app will work without password protection (fine for dev/demo).
+
 ### 3. Deploy
+
 - Railway automatically builds and deploys
 - Wait for deployment to complete (~2-3 minutes)
 - Copy the public URL (e.g., `https://spendsense-production.up.railway.app`)
 
 ### 4. Initialize Database
+
 Railway dashboard → Your service → Click **"Shell"** or **"Terminal"** button (top right of service view):
 
 ```bash
@@ -40,22 +46,26 @@ python scripts/generate_recommendations.py --all
 ## ✅ Smoke Test (2 minutes)
 
 ### Test 1: Authentication
+
 - [ ] Visit Railway URL
 - [ ] See password prompt
 - [ ] Enter password → Dashboard loads
 
 ### Test 2: System Overview
+
 - [ ] Navigate to "System Overview"
 - [ ] See metrics: Users > 0, Signal Coverage > 0%
 - [ ] No errors
 
 ### Test 3: User View
+
 - [ ] Navigate to "User View"
 - [ ] Enter `user_001`
 - [ ] Click "🔍 Load My Profile"
 - [ ] See persona card + recommendations
 
 ### Test 4: Navigation
+
 - [ ] Click through all pages (no crashes):
   - User Analytics
   - Recommendation Engine
@@ -69,13 +79,15 @@ python scripts/generate_recommendations.py --all
 ## 🐛 Quick Fixes
 
 **Password not working?**
+
 - Check `STREAMLIT_PASSWORD` is set in Railway variables
 - Redeploy after setting variable
 
 **Database errors?**
+
 - Run initialization commands in Railway shell (step 4 above)
 
 **Service won't start?**
+
 - Check Railway logs for errors
 - Verify `Dockerfile.railway` exists
-
