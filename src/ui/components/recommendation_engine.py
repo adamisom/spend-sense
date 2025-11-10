@@ -60,19 +60,16 @@ def render_recommendation_engine():
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
         
-        # Debug: Show what we're querying
-        with st.expander("🔍 Debug Info", expanded=False):
-            st.write(f"Database path: `{db_path}`")
-            st.write(f"Status filter: `{status_filter}` (mapped to: `{api_status}`)")
-            st.write(f"Limit: `{limit}`")
+        # Always show debug info prominently when troubleshooting
+        st.info(f"🔍 **Debug**: Querying with status=`{status_filter}`, limit=`{limit}`, db=`{db_path}`")
         
         recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
         
-        # Debug: Show what we got
-        with st.expander("🔍 Debug Info", expanded=False):
-            st.write(f"Recommendations returned: `{len(recommendations)}`")
-            if recommendations:
-                st.write(f"First recommendation: `{recommendations[0].get('title', 'N/A')}`")
+        # Show results immediately
+        if recommendations:
+            st.success(f"✅ Found {len(recommendations)} recommendations!")
+        else:
+            st.warning(f"⚠️ No recommendations returned from query")
         
         if not recommendations:
             # Show helpful debug info
@@ -125,21 +122,47 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
         logger.info(f"Fetching recommendations: status={status}, limit={limit}, where={where_clause}")
         
         with database_transaction(db_path) as conn:
-            query = f"""
-                SELECT 
-                    rec_id,
-                    user_id,
-                    content_id,
-                    rationale,
-                    created_at,
-                    approved,
-                    delivered,
-                    decision_trace
-                FROM recommendations
-                {where_clause}
-                ORDER BY created_at DESC
-                LIMIT ?
-            """
+            # Check if decision_trace column exists
+            cursor = conn.execute("PRAGMA table_info(recommendations)")
+            columns = [row[1] for row in cursor.fetchall()]
+            has_decision_trace = 'decision_trace' in columns
+            
+            # Build query based on available columns
+            if has_decision_trace:
+                query = f"""
+                    SELECT 
+                        rec_id,
+                        user_id,
+                        content_id,
+                        rationale,
+                        created_at,
+                        approved,
+                        delivered,
+                        decision_trace
+                    FROM recommendations
+                    {where_clause}
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                """
+            else:
+                # Fallback query without decision_trace
+                logger.info("decision_trace column not found, using fallback query")
+                query = f"""
+                    SELECT 
+                        rec_id,
+                        user_id,
+                        content_id,
+                        rationale,
+                        created_at,
+                        approved,
+                        delivered,
+                        NULL as decision_trace
+                    FROM recommendations
+                    {where_clause}
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                """
+            
             logger.debug(f"Executing query: {query}")
             results = conn.execute(query, (limit,)).fetchall()
             
