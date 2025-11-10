@@ -124,27 +124,27 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     None
                 )
                 
-            # Parse decision_trace if present
-            decision_trace = None
-            if row.get('decision_trace'):
-                import json
-                try:
-                    decision_trace = json.loads(row['decision_trace'])
-                except (json.JSONDecodeError, TypeError):
-                    decision_trace = None
-            
-            recommendations.append({
-                "rec_id": row['rec_id'],
-                "user_id": row['user_id'],
-                "content_id": content_id,
-                "title": content_item.title if content_item else "Unknown",
-                "type": content_item.type if content_item else "unknown",
-                "rationale": row['rationale'],
-                "created_at": row['created_at'],
-                "approved": row['approved'],
-                "delivered": row['delivered'],
-                "decision_trace": decision_trace
-            })
+                # Parse decision_trace if present
+                decision_trace = None
+                if row.get('decision_trace'):
+                    import json
+                    try:
+                        decision_trace = json.loads(row['decision_trace'])
+                    except (json.JSONDecodeError, TypeError):
+                        decision_trace = None
+                
+                recommendations.append({
+                    "rec_id": row['rec_id'],
+                    "user_id": row['user_id'],
+                    "content_id": content_id,
+                    "title": content_item.title if content_item else "Unknown",
+                    "type": content_item.type if content_item else "unknown",
+                    "rationale": row['rationale'],
+                    "created_at": row['created_at'],
+                    "approved": row['approved'],
+                    "delivered": row['delivered'],
+                    "decision_trace": decision_trace
+                })
             
             return recommendations
             
