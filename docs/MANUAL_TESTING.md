@@ -13,6 +13,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 ## ✅ Basic Functionality Tests
 
 ### Test 1: Authentication (2 min)
+
 - [ ] Visit dashboard URL
 - [ ] See password prompt
 - [ ] Enter correct password → Dashboard loads
@@ -20,6 +21,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] Refresh page → Still logged in (session persists)
 
 ### Test 2: System Overview Page (2 min)
+
 - [ ] Navigate to "System Overview"
 - [ ] See page explanation expander ("ℹ️ What is this page?")
 - [ ] See action buttons at top:
@@ -34,6 +36,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] Click "🔄 Refresh Data" → Metrics update
 
 ### Test 3: User View Page (5 min)
+
 - [ ] Navigate to "User View"
 - [ ] See info box: "👁️ Operator View: This page shows a mock of the end-user web application experience"
 - [ ] Enter user ID (e.g., `user_001`) or click a user ID from the list
@@ -58,6 +61,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] Test consent blocking: Revoke consent for a user → Recommendations should be blocked with warning message
 
 ### Test 4: User Analytics Page (2 min)
+
 - [ ] Navigate to "User Analytics"
 - [ ] See user overview metrics
 - [ ] See persona distribution:
@@ -67,6 +71,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] See user list table (filterable)
 
 ### Test 5: Recommendation Engine Page (3 min)
+
 - [ ] Navigate to "Recommendation Engine"
 - [ ] Wait for page to load (may take a few seconds)
 - [ ] See page explanation expander ("ℹ️ What is this page?")
@@ -90,12 +95,14 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] Test approve/reject buttons (if pending recommendations exist)
 
 ### Test 6: Data Quality Page (2 min)
+
 - [ ] Navigate to "Data Quality"
 - [ ] See quality distribution chart
 - [ ] See quality metrics (average, median)
 - [ ] See user list filtered by quality
 
 ### Test 7: Performance Metrics Page (2 min)
+
 - [ ] Navigate to "Performance Metrics"
 - [ ] See performance metrics:
   - [ ] P95 Compute Time
@@ -105,6 +112,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] See fairness metrics (may show framework message if no demographics)
 
 ### Test 8: System Logs Page (1 min)
+
 - [ ] Navigate to "System Logs"
 - [ ] See recent log entries
 - [ ] Logs are readable and formatted
@@ -114,11 +122,13 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 ## ✅ Regression Tests
 
 ### Test 9: Database Operations (3 min)
+
 - [ ] All pages load without database errors
 - [ ] No "database locked" errors
 - [ ] Data persists across page refreshes
 
 ### Test 10: Signal Computation (5 min)
+
 - [ ] Navigate to "System Overview" page
 - [ ] Click "🔧 Compute Signals" button (on System Overview page, not sidebar)
 - [ ] See info message: "🔄 Computing signals for all users... This may take 1-2 minutes. Please wait."
@@ -131,6 +141,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] User personas appear (colored icons in User View instead of gray)
 
 ### Test 11: Navigation (2 min)
+
 - [ ] Navigate between all pages:
   - [ ] User View
   - [ ] System Overview
@@ -143,6 +154,7 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] Sidebar navigation works correctly
 
 ### Test 12: Refresh Data Button (2 min)
+
 - [ ] Navigate to "System Overview" page
 - [ ] Click "🔄 Refresh Data" button
 - [ ] Verify metrics update (check last refresh timestamp in sidebar)
@@ -153,21 +165,27 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 ## ✅ API Endpoints (Optional - if API is exposed)
 
 ### Test 13: Health Check
+
 ```bash
 curl https://your-app.up.railway.app/health
 ```
+
 - [ ] Returns `{"status": "healthy"}`
 
 ### Test 14: User Profile
+
 ```bash
 curl https://your-app.up.railway.app/profile/user_001
 ```
+
 - [ ] Returns user profile with persona and signals
 
 ### Test 15: Recommendations
+
 ```bash
 curl https://your-app.up.railway.app/recommendations/user_001
 ```
+
 - [ ] Returns recommendations for user
 
 ---
@@ -175,16 +193,19 @@ curl https://your-app.up.railway.app/recommendations/user_001
 ## ✅ Edge Cases
 
 ### Test 16: Invalid User ID (1 min)
+
 - [ ] In User View, enter invalid user ID (e.g., `invalid_user`)
 - [ ] See appropriate error message
 - [ ] No crash or stack trace
 
 ### Test 17: Empty Database (2 min)
+
 - [ ] If database is empty, pages should show helpful messages
 - [ ] No crashes or errors
 - [ ] Clear instructions on how to populate data
 
 ### Test 18: Missing Data (2 min)
+
 - [ ] Test with user that has no signals
 - [ ] Test with user that has no recommendations
 - [ ] Appropriate fallback messages shown
@@ -194,12 +215,14 @@ curl https://your-app.up.railway.app/recommendations/user_001
 ## ✅ Performance Checks
 
 ### Test 19: Page Load Times (2 min)
+
 - [ ] System Overview loads in < 3 seconds
 - [ ] User View loads in < 3 seconds
 - [ ] User Analytics loads in < 5 seconds
 - [ ] No excessive loading spinners
 
 ### Test 20: Responsiveness (2 min)
+
 - [ ] Dashboard is responsive (works on mobile/tablet)
 - [ ] Charts render correctly
 - [ ] Tables are scrollable if needed
@@ -209,12 +232,14 @@ curl https://your-app.up.railway.app/recommendations/user_001
 ## ✅ Security Checks
 
 ### Test 21: Authentication (2 min)
+
 - [ ] Password required to access dashboard
 - [ ] Wrong password shows error
 - [ ] No password bypass possible
 - [ ] Session persists correctly
 
 ### Test 22: Input Validation (2 min)
+
 - [ ] SQL injection attempts fail gracefully
 - [ ] XSS attempts are sanitized
 - [ ] Invalid inputs show appropriate errors
@@ -236,6 +261,7 @@ If you're short on time, run these critical tests:
 ## Expected Results
 
 After all tests:
+
 - ✅ All pages load without errors
 - ✅ All core functionality works
 - ✅ No regressions from previous version
@@ -248,6 +274,7 @@ After all tests:
 ## Reporting Issues
 
 If any test fails:
+
 1. Note which test failed
 2. Check Railway logs for errors
 3. Verify environment variables are set correctly
@@ -258,4 +285,3 @@ If any test fails:
 
 **Total Testing Time**: ~30-40 minutes for full test suite  
 **Quick Smoke Test**: ~5 minutes
-
