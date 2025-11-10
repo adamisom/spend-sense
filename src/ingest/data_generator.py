@@ -60,24 +60,26 @@ class SyntheticDataGenerator:
         
         # Generate diverse personas explicitly
         persona_profiles = [
+            # Fraud Risk (1 user) - MUST be first to ensure it's generated
+            *[UserProfile(f"user_{i+1:03d}", 'medium', 'good', 'moderate', 'moderate', False, 'fraud_risk') for i in range(1)],
             # High Utilization (5 users)
-            *[UserProfile(f"user_{i+1:03d}", 'medium', 'poor', 'none', 'moderate', True, 'high_utilization') for i in range(5)],
+            *[UserProfile(f"user_{i+2:03d}", 'medium', 'poor', 'none', 'moderate', True, 'high_utilization') for i in range(5)],
             # Variable Income (5 users)  
-            *[UserProfile(f"user_{i+6:03d}", 'low', 'fair', 'minimal', 'light', True, 'variable_income') for i in range(5)],
+            *[UserProfile(f"user_{i+7:03d}", 'low', 'fair', 'minimal', 'light', True, 'variable_income') for i in range(5)],
             # Subscription Heavy (5 users) - but not fee_fighter users
-            *[UserProfile(f"user_{i+11:03d}", 'medium', 'good', 'moderate', 'heavy', False, 'subscription_heavy') for i in range(5)],
+            *[UserProfile(f"user_{i+12:03d}", 'medium', 'good', 'moderate', 'heavy', False, 'subscription_heavy') for i in range(5)],
             # Savings Builder (5 users)
-            *[UserProfile(f"user_{i+16:03d}", 'high', 'excellent', 'aggressive', 'light', False, 'savings_builder') for i in range(5)],
+            *[UserProfile(f"user_{i+17:03d}", 'high', 'excellent', 'aggressive', 'light', False, 'savings_builder') for i in range(5)],
             # Fee Fighter (5 users) - minimal subscriptions to avoid matching subscription_heavy
-            *[UserProfile(f"user_{i+21:03d}", 'low', 'fair', 'minimal', 'light', True, 'fee_fighter') for i in range(5)],
-            # Mixed/Other (5 users)
-            *[UserProfile(f"user_{i+26:03d}", 
+            *[UserProfile(f"user_{i+22:03d}", 'low', 'fair', 'minimal', 'light', True, 'fee_fighter') for i in range(5)],
+            # Mixed/Other (4 users) - reduced from 5 to make room for fraud_risk
+            *[UserProfile(f"user_{i+27:03d}", 
                 random.choices(['low', 'medium', 'high'], weights=[30, 50, 20])[0],
                 random.choices(['excellent', 'good', 'fair', 'poor'], weights=[20, 40, 25, 15])[0],
                 random.choices(['aggressive', 'moderate', 'minimal', 'none'], weights=[15, 35, 35, 15])[0],
                 random.choices(['heavy', 'moderate', 'light'], weights=[20, 60, 20])[0],
                 random.choice([True, False]),
-                None) for i in range(5)]
+                None) for i in range(4)]
         ]
         
         profiles.extend(persona_profiles[:count])
@@ -393,6 +395,14 @@ class SyntheticDataGenerator:
             )
             transactions.extend(fee_transactions)
         
+        # Generate fraud transactions (for fraud_risk persona)
+        if profile.scenario == 'fraud_risk' and (checking_accounts or credit_accounts):
+            fraud_accounts = checking_accounts + credit_accounts
+            fraud_transactions = self._generate_fraud_transactions(
+                profile, fraud_accounts, start_date, end_date
+            )
+            transactions.extend(fraud_transactions)
+        
         return transactions
 
     def _generate_income_transactions(self, profile: UserProfile, account: Dict[str, Any], 
@@ -434,7 +444,8 @@ class SyntheticDataGenerator:
                 'category_primary': 'Payroll',
                 'category_detailed': 'Deposit',
                 'payment_channel': 'other',
-                'pending': False
+                'pending': False,
+                'is_fraud': 0
             }
             transactions.append(transaction)
             
@@ -505,7 +516,8 @@ class SyntheticDataGenerator:
                         'category_primary': 'Recreation',
                         'category_detailed': 'Subscription',
                         'payment_channel': 'online',
-                        'pending': False
+                        'pending': False,
+                        'is_fraud': 0
                     }
                     transactions.append(transaction)
                 
@@ -570,7 +582,8 @@ class SyntheticDataGenerator:
                     'category_primary': category.title(),
                     'category_detailed': category.title(),
                     'payment_channel': random.choice(['online', 'in store', 'other']),
-                    'pending': random.choice([True, False]) if current_date >= date.today() - timedelta(days=3) else False
+                    'pending': random.choice([True, False]) if current_date >= date.today() - timedelta(days=3) else False,
+                    'is_fraud': 0
                 }
                 transactions.append(transaction)
             
@@ -620,7 +633,8 @@ class SyntheticDataGenerator:
                 'category_primary': 'Transfer',
                 'category_detailed': 'Deposit',
                 'payment_channel': 'other',
-                'pending': False
+                'pending': False,
+                'is_fraud': 0
             }
             transactions.append(transfer_out)
             
@@ -635,7 +649,8 @@ class SyntheticDataGenerator:
                 'category_primary': 'Transfer',
                 'category_detailed': 'Deposit',
                 'payment_channel': 'other',
-                'pending': False
+                'pending': False,
+                'is_fraud': 0
             }
             transactions.append(transfer_in)
             
@@ -688,7 +703,8 @@ class SyntheticDataGenerator:
                     'category_primary': 'Payment',
                     'category_detailed': 'Credit Card Payment',
                     'payment_channel': 'online',
-                    'pending': False
+                    'pending': False,
+                    'is_fraud': 0
                 }
                 transactions.append(payment)
                 
@@ -725,12 +741,66 @@ class SyntheticDataGenerator:
                         'category_primary': 'Bank Fee',
                         'category_detailed': fee_name,
                         'payment_channel': 'other',
-                        'pending': False
+                        'pending': False,
+                        'is_fraud': 0
                     }
                     transactions.append(transaction)
             
             # Next month
             current_date += timedelta(days=random.randint(28, 32))
+        
+        return transactions
+
+    def _generate_fraud_transactions(self, profile: UserProfile, accounts: List[Dict[str, Any]],
+                                    start_date: date, end_date: date) -> List[Dict[str, Any]]:
+        """Generate fraud transactions for fraud_risk persona."""
+        transactions = []
+        
+        if not accounts:
+            return transactions
+        
+        # Generate 3-8 fraud transactions over the 180-day period
+        # This ensures fraud_rate >= 1% (meeting the persona criteria)
+        fraud_count = random.randint(3, 8)
+        
+        # Fraud transaction patterns
+        fraud_patterns = [
+            ('Online Purchase', 'Shopping', (50, 500), 'online'),
+            ('ATM Withdrawal', 'ATM', (100, 300), 'other'),
+            ('Gas Station', 'Gas', (30, 150), 'in store'),
+            ('Restaurant', 'Restaurant', (25, 200), 'in store'),
+            ('Grocery Store', 'Grocery', (40, 250), 'in store'),
+        ]
+        
+        # Distribute fraud transactions across the time period
+        days_span = (end_date - start_date).days
+        fraud_dates = sorted([start_date + timedelta(days=random.randint(0, days_span)) for _ in range(fraud_count)])
+        
+        for fraud_date in fraud_dates:
+            pattern_name, category, amount_range, payment_channel = random.choice(fraud_patterns)
+            amount = random.uniform(*amount_range)
+            account = random.choice(accounts)
+            
+            # Fraud transactions are typically larger and unusual
+            merchant_name = random.choice([
+                'Suspicious Merchant', 'Unknown Vendor', 'Unrecognized Charge',
+                'Foreign Transaction', 'Online Marketplace'
+            ])
+            
+            transaction = {
+                'transaction_id': f"{account['account_id']}_fraud_{fraud_date.strftime('%Y%m%d')}_{len(transactions)}",
+                'account_id': account['account_id'],
+                'user_id': profile.user_id,
+                'date': fraud_date.isoformat(),
+                'amount': -round(amount, 2),  # Negative for expense
+                'merchant_name': merchant_name,
+                'category_primary': category,
+                'category_detailed': pattern_name,
+                'payment_channel': payment_channel,
+                'pending': False,
+                'is_fraud': 1  # Mark as fraud
+            }
+            transactions.append(transaction)
         
         return transactions
 
