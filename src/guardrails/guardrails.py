@@ -29,10 +29,10 @@ class Guardrails:
     
     # Required disclaimers by content type
     DISCLAIMERS = {
-        "partner_offer": "This is a partner offer. We may receive compensation if you apply.",
-        "calculator": "Results are estimates only. Consult a financial advisor for personalized advice.",
-        "article": "This content is for educational purposes only and does not constitute financial advice.",
-        "checklist": "This checklist is a general guide. Your situation may vary."
+        "partner_offer": "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance.",
+        "calculator": "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance.",
+        "article": "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance.",
+        "checklist": "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
     }
     
     def __init__(self):

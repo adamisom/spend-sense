@@ -505,28 +505,16 @@ def get_recommendations_from_db(user_id: str) -> list:
 def _extract_disclaimer(rationale: str, content_type: str) -> str:
     """Extract disclaimer from rationale or provide default."""
     # Disclaimers are appended to rationale, try to extract
-    disclaimer_keywords = [
-        "This is a partner offer",
-        "Results are estimates only",
-        "This content is for educational purposes",
-        "This checklist is a general guide"
-    ]
+    disclaimer_text = "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
     
-    for keyword in disclaimer_keywords:
-        if keyword.lower() in rationale.lower():
-            # Find the disclaimer part (usually after the main rationale)
-            parts = rationale.split(keyword)
-            if len(parts) > 1:
-                return keyword + parts[1].rstrip('.')
+    if disclaimer_text.lower() in rationale.lower():
+        # Find the disclaimer part (usually after the main rationale)
+        parts = rationale.split(disclaimer_text)
+        if len(parts) > 1:
+            return disclaimer_text
     
-    # Fallback to default based on type
-    defaults = {
-        'partner_offer': 'This is a partner offer. We may receive compensation if you apply.',
-        'calculator': 'Results are estimates only. Consult a financial advisor for personalized advice.',
-        'article': 'This content is for educational purposes only and does not constitute financial advice.',
-        'checklist': 'This checklist is a general guide. Your situation may vary.'
-    }
-    return defaults.get(content_type, 'This content is for educational purposes only.')
+    # Fallback to default
+    return disclaimer_text
 
 def render_recommendation_card(rec: Dict[str, Any], idx: int):
     """Render a single recommendation card."""
@@ -546,11 +534,9 @@ def render_recommendation_card(rec: Dict[str, Any], idx: int):
     disclaimer = _extract_disclaimer(rationale, rec['type'])
     
     # Remove disclaimer from main rationale for cleaner display
-    for keyword in ["This is a partner offer", "Results are estimates only", 
-                    "This content is for educational purposes", "This checklist is a general guide"]:
-        if keyword.lower() in rationale.lower():
-            rationale = rationale.split(keyword)[0].strip().rstrip('.')
-            break
+    disclaimer_text = "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
+    if disclaimer_text.lower() in rationale.lower():
+        rationale = rationale.split(disclaimer_text)[0].strip().rstrip('.')
     
     # Card styling
     with st.container():
