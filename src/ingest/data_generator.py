@@ -172,12 +172,17 @@ class SyntheticDataGenerator:
     def generate_users_csv(self, profiles: List[UserProfile]) -> List[Dict[str, Any]]:
         """Generate users CSV data."""
         users = []
-        for profile in profiles:
+        for idx, profile in enumerate(profiles):
+            # Set 80-90% consent rate (10-20% without consent)
+            # Use a deterministic pattern based on user index to ensure reproducibility
+            # Every 8th or 9th user (roughly 12-13%) will not consent
+            consent_status = (idx % 9) != 0  # ~89% consent rate
+            
             user = {
                 'user_id': profile.user_id,
                 'created_at': self.fake.date_time_between(start_date='-2y', end_date='now').isoformat(),
-                'consent_status': True,  # All synthetic users consent
-                'consent_date': self.fake.date_time_between(start_date='-1y', end_date='now').isoformat()
+                'consent_status': consent_status,
+                'consent_date': self.fake.date_time_between(start_date='-1y', end_date='now').isoformat() if consent_status else None
             }
             users.append(user)
         return users

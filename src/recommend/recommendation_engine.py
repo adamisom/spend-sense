@@ -85,9 +85,16 @@ class RecommendationEngine:
             scored_items = self._score_content(eligible_items, persona_match, triggers, signals)
             
             # Step 7: Generate recommendations with rationales
+            from src.guardrails.guardrails import Guardrails
+            guardrails = Guardrails()
+            
             recommendations = []
             for item, score in scored_items[:max_recommendations]:
                 rationale = self._generate_rationale(item, persona_match, triggers, signals)
+                
+                # Inject disclaimer based on content type
+                rationale = guardrails.inject_disclaimer(item, rationale)
+                
                 match_reasons = self._get_match_reasons(item, persona_match, triggers)
                 
                 recommendations.append(Recommendation(
@@ -214,28 +221,181 @@ class RecommendationEngine:
         triggers: List[SignalTrigger],
         signals: UserSignals
     ) -> str:
-        """Generate human-readable rationale for recommendation."""
-        reasons = []
+        """Generate human-readable rationale for recommendation.
         
-        # Persona-based reason
-        reasons.append(f"Based on your financial profile ({persona_match.persona_name.lower()})")
+        Only mentions signals relevant to the content item's triggers,
+        ensuring the explanation is tailored and relevant.
+        """
+        import random
         
-        # Trigger-based reasons
+        # Get matching triggers for this specific content item
         matching_triggers = [t for t in triggers if t in item.signal_triggers]
-        if matching_triggers:
+        
+        if not matching_triggers:
+            # Fallback if no triggers match
+            return f"This content matches your {persona_match.persona_name.lower()} financial profile."
+        
+        # Build rationale based on content-specific triggers only
+        rationale_parts = []
+        
+        # Map triggers to specific signal values and natural phrasing
+        trigger_details = []
+        
+        for trigger in matching_triggers:
+            detail = self._get_trigger_detail(trigger, signals)
+            if detail:
+                trigger_details.append(detail)
+        
+        if not trigger_details:
+            # Fallback if no details available
             trigger_explanations = explain_triggers_for_user(matching_triggers)
             if trigger_explanations:
-                reasons.append(f"because {trigger_explanations[0].lower()}")
+                return f"This is relevant because {trigger_explanations[0].lower()}."
+            return f"This content matches your {persona_match.persona_name.lower()} financial profile."
         
-        # Specific signal-based reasons
-        if persona_match.persona_id == "high_utilization" and signals.credit_utilization_max:
-            reasons.append(f"your credit utilization is {signals.credit_utilization_max*100:.0f}%")
-        elif persona_match.persona_id == "subscription_heavy" and signals.subscription_count:
-            reasons.append(f"you have {signals.subscription_count} active subscriptions")
-        elif persona_match.persona_id == "variable_income" and signals.income_pay_gap:
-            reasons.append(f"your income gaps are {signals.income_pay_gap} days apart")
+        # Create natural, varied rationales
+        opening_phrases = [
+            "This is relevant",
+            "This matters",
+            "This is important",
+            "This can help",
+            "This applies to you"
+        ]
         
-        return ", ".join(reasons) + "."
+        opening = random.choice(opening_phrases)
+        
+        # Use the most specific detail available
+        primary_detail = trigger_details[0]
+        
+        # Create natural sentence structure
+        if len(trigger_details) == 1:
+            rationale = f"{opening} because {primary_detail}."
+        else:
+            # If multiple relevant signals, mention the primary one
+            rationale = f"{opening} because {primary_detail}."
+        
+        return rationale
+    
+    def _get_trigger_detail(self, trigger: SignalTrigger, signals: UserSignals) -> Optional[str]:
+        """Get specific, natural-language detail for a trigger based on actual signal values."""
+        from src.recommend.content_schema import SignalTrigger
+        
+        # Credit-related triggers
+        if trigger == SignalTrigger.HIGH_CREDIT_UTILIZATION:
+            if signals.credit_utilization_max is not None:
+                util_pct = signals.credit_utilization_max * 100
+                if util_pct >= 80:
+                    return f"your credit utilization is {util_pct:.0f}% (well above the recommended 30%)"
+                elif util_pct >= 50:
+                    return f"your credit utilization is {util_pct:.0f}% (above the recommended 30%)"
+                else:
+                    return f"your credit utilization is {util_pct:.0f}%"
+        
+        elif trigger == SignalTrigger.HAS_INTEREST_CHARGES:
+            if signals.credit_utilization_max is not None:
+                return f"you're paying interest charges on {signals.credit_utilization_max*100:.0f}% credit utilization"
+            return "you're paying interest charges on your credit cards"
+        
+        elif trigger == SignalTrigger.IS_OVERDUE:
+            return "you have overdue payments that need attention"
+        
+        elif trigger == SignalTrigger.MINIMUM_PAYMENT_ONLY:
+            return "you're making only minimum payments, which extends your debt timeline"
+        
+        # Subscription-related triggers
+        elif trigger == SignalTrigger.MANY_SUBSCRIPTIONS:
+            if signals.subscription_count:
+                return f"you have {signals.subscription_count} active subscriptions"
+            return "you have multiple active subscriptions"
+        
+        elif trigger == SignalTrigger.HIGH_SUBSCRIPTION_SPEND:
+            if signals.monthly_subscription_spend:
+                spend = signals.monthly_subscription_spend
+                if spend >= 100:
+                    return f"you're spending ${spend:.0f}+ per month on subscriptions"
+                else:
+                    return f"you're spending ${spend:.0f} per month on subscriptions"
+            return "you're spending $50+ per month on subscriptions"
+        
+        elif trigger == SignalTrigger.HIGH_SUBSCRIPTION_SHARE:
+            if signals.subscription_share:
+                share_pct = signals.subscription_share * 100
+                return f"subscriptions make up {share_pct:.0f}% of your total spending"
+            return "subscriptions make up a significant portion of your spending"
+        
+        # Income-related triggers
+        elif trigger == SignalTrigger.VARIABLE_INCOME:
+            if signals.income_pay_gap:
+                return f"your income arrives irregularly, with gaps of {signals.income_pay_gap} days between payments"
+            return "your income timing is irregular"
+        
+        elif trigger == SignalTrigger.LOW_CASH_BUFFER:
+            if signals.cash_flow_buffer is not None:
+                if signals.cash_flow_buffer < 0.5:
+                    return f"you have less than {signals.cash_flow_buffer*30:.0f} days of expenses saved"
+                return f"your cash buffer is less than 1 month of expenses"
+            return "your cash flow buffer is low"
+        
+        elif trigger == SignalTrigger.HIGH_INCOME_VARIABILITY:
+            if signals.income_variability:
+                var_pct = signals.income_variability * 100
+                return f"your income varies by {var_pct:.0f}% month to month"
+            return "your income amounts vary significantly"
+        
+        # Savings-related triggers
+        elif trigger == SignalTrigger.POSITIVE_SAVINGS:
+            if signals.monthly_savings_inflow:
+                return f"you're saving ${signals.monthly_savings_inflow:.0f} per month"
+            return "you're actively saving money"
+        
+        elif trigger == SignalTrigger.LOW_EMERGENCY_FUND:
+            if signals.emergency_fund_months is not None:
+                if signals.emergency_fund_months < 1:
+                    return f"your emergency fund covers less than 1 month of expenses"
+                return f"your emergency fund covers {signals.emergency_fund_months:.1f} months of expenses (recommended: 3-6 months)"
+            return "your emergency fund is below recommended levels"
+        
+        elif trigger == SignalTrigger.NEGATIVE_SAVINGS_GROWTH:
+            return "your savings balance is decreasing over time"
+        
+        # Bank fee triggers
+        elif trigger == SignalTrigger.HIGH_BANK_FEES:
+            if signals.monthly_bank_fees:
+                return f"you're paying ${signals.monthly_bank_fees:.0f} per month in bank fees"
+            return "you're paying $20+ per month in bank fees"
+        
+        elif trigger == SignalTrigger.HAS_OVERDRAFT_FEES:
+            return "you've been charged overdraft fees recently"
+        
+        elif trigger == SignalTrigger.HAS_ATM_FEES:
+            return "you're paying ATM fees when withdrawing cash"
+        
+        elif trigger == SignalTrigger.HAS_MAINTENANCE_FEES:
+            return "you're paying account maintenance fees"
+        
+        # Fraud triggers
+        elif trigger == SignalTrigger.HAS_FRAUD_HISTORY:
+            if signals.fraud_transaction_count:
+                return f"you've had {signals.fraud_transaction_count} fraud transaction{'s' if signals.fraud_transaction_count > 1 else ''} in your account"
+            return "you have fraud transactions in your account history"
+        
+        elif trigger == SignalTrigger.HIGH_FRAUD_RISK:
+            if signals.fraud_risk_score:
+                risk_pct = signals.fraud_risk_score * 100
+                return f"your account shows a {risk_pct:.0f}% fraud risk score"
+            return "your account shows elevated fraud risk"
+        
+        elif trigger == SignalTrigger.ELEVATED_FRAUD_RATE:
+            if signals.fraud_rate:
+                rate_pct = signals.fraud_rate * 100
+                return f"{rate_pct:.1f}% of your transactions are flagged as fraud"
+            return "your fraud rate is above normal levels"
+        
+        # Data quality
+        elif trigger == SignalTrigger.INSUFFICIENT_DATA:
+            return "we need more transaction data to provide personalized recommendations"
+        
+        return None
     
     def _get_match_reasons(
         self,

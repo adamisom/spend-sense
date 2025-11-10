@@ -107,8 +107,7 @@ def initialize_session_state():
     if 'last_refresh' not in st.session_state:
         st.session_state.last_refresh = None
     
-    if 'auto_refresh' not in st.session_state:
-        st.session_state.auto_refresh = False
+    # Removed auto_refresh - not implemented and Streamlit doesn't support it well
 
 def get_system_health() -> dict:
     """Get basic system health metrics."""
@@ -178,25 +177,21 @@ def render_sidebar():
     
     st.sidebar.markdown("---")
     
-    # Database settings
+    # Database settings (for development/testing)
     st.sidebar.subheader("⚙️ Settings")
-    new_db_path = st.sidebar.text_input(
-        "Database Path", 
-        value=st.session_state.db_path,
-        help="Path to SQLite database file"
-    )
+    with st.sidebar.expander("🔧 Developer Options", expanded=False):
+        new_db_path = st.sidebar.text_input(
+            "Database Path", 
+            value=st.session_state.db_path,
+            help="Change database file (for testing with different databases). Default uses DATABASE_PATH env var or db/spend_sense.db"
+        )
+        
+        if new_db_path != st.session_state.db_path:
+            st.session_state.db_path = new_db_path
+            st.rerun()
     
-    if new_db_path != st.session_state.db_path:
-        st.session_state.db_path = new_db_path
-        st.rerun()
-    
-    # Auto-refresh controls
-    st.session_state.auto_refresh = st.sidebar.checkbox(
-        "Auto-refresh (30s)", 
-        value=st.session_state.auto_refresh
-    )
-    
-    if st.sidebar.button("🔄 Refresh Data"):
+    # Manual refresh button
+    if st.sidebar.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale."):
         st.session_state.last_refresh = datetime.now()
         st.rerun()
     
@@ -407,10 +402,8 @@ def main():
             st.code(message[:500] if len(message) > 500 else message)  # Show error details
             st.info("💡 You can also run: `python scripts/compute_signals.py` from the command line")
     
-    # Auto-refresh logic
-    if st.session_state.auto_refresh:
-        # This is a simplified approach - in production you'd use st.empty() and time.sleep()
-        st.markdown("🔄 Auto-refresh enabled")
+    # Note: Auto-refresh removed - Streamlit doesn't support true auto-refresh well
+    # Users can click "🔄 Refresh Data" button in sidebar to manually refresh
     
     # Render sidebar and get selected page
     selected_page = render_sidebar()
