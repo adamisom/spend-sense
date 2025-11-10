@@ -235,41 +235,48 @@ def render_sidebar():
     health = get_system_health()
     health_checks = health.get('health_checks', {})
     
-    # Show health status with expandable details
+    # Show health status with visible criteria
     if health['system_status'] == 'healthy':
-        with st.sidebar.expander("✅ System Healthy", expanded=False):
-            st.markdown("**Health Criteria:**")
-            checks = health_checks
-            if checks.get('has_users'):
-                st.markdown("✅ Users loaded")
-            if checks.get('has_transactions'):
-                st.markdown("✅ Transactions available")
-            if checks.get('has_signals'):
-                st.markdown("✅ Signals computed")
-            if checks.get('has_data_quality'):
-                st.markdown("✅ Data quality > 0")
-            if checks.get('has_recent_activity'):
-                st.markdown("✅ Recent activity detected")
-            else:
-                st.markdown("ℹ️ No recent recommendations (may be normal)")
+        st.sidebar.success("✅ System Healthy")
+        # Show criteria in a compact info box
+        checks = health_checks
+        criteria_list = []
+        if checks.get('has_users'):
+            criteria_list.append("Users loaded")
+        if checks.get('has_transactions'):
+            criteria_list.append("Transactions available")
+        if checks.get('has_signals'):
+            criteria_list.append("Signals computed")
+        if checks.get('has_data_quality'):
+            criteria_list.append("Data quality > 0")
+        
+        if criteria_list:
+            st.sidebar.caption("**Why healthy:** " + " • ".join(criteria_list))
+        
+        if checks.get('has_recent_activity'):
+            st.sidebar.caption("✅ Recent activity detected")
+        else:
+            st.sidebar.caption("ℹ️ No recent recommendations (normal)")
     else:
-        with st.sidebar.expander("❌ System Issues", expanded=True):
-            st.markdown("**Missing Components:**")
-            checks = health_checks
-            if not checks.get('has_users'):
-                st.markdown("❌ No users in database")
-                st.info("💡 Run data generator: `python -m src.ingest.data_generator --users 50`")
-            if not checks.get('has_transactions'):
-                st.markdown("❌ No transactions found")
-                st.info("💡 Run: `python scripts/load_data.py`")
-            if not checks.get('has_signals'):
-                st.markdown("❌ No signals computed")
-                st.info("💡 Click '🔧 Compute Signals' button above")
-            if not checks.get('has_data_quality'):
-                st.markdown("❌ Data quality is 0.0")
-                st.info("💡 Check transactions and recompute signals")
-            if checks.get('has_users') and checks.get('has_transactions') and not checks.get('has_signals'):
-                st.markdown("⚠️ **Action needed:** Compute signals for users")
+        st.sidebar.error("❌ System Issues")
+        # Show missing components
+        checks = health_checks
+        issues = []
+        if not checks.get('has_users'):
+            issues.append("No users")
+            st.sidebar.info("💡 Run: `python -m src.ingest.data_generator --users 50`")
+        if not checks.get('has_transactions'):
+            issues.append("No transactions")
+            st.sidebar.info("💡 Run: `python scripts/load_data.py`")
+        if not checks.get('has_signals'):
+            issues.append("No signals")
+            st.sidebar.info("💡 Click '🔧 Compute Signals' above")
+        if not checks.get('has_data_quality'):
+            issues.append("Data quality = 0")
+            st.sidebar.info("💡 Check transactions and recompute signals")
+        
+        if issues:
+            st.sidebar.caption("**Issues:** " + " • ".join(issues))
     
     st.sidebar.markdown(f"""
     <div class="sidebar-info">
