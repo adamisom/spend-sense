@@ -13,6 +13,16 @@ sys.path.append(str(project_root))
 from src.db.connection import database_transaction
 from loguru import logger
 
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def _load_content_catalog_cached():
+    """Load content catalog with caching."""
+    from src.recommend.content_schema import load_content_catalog
+    try:
+        return load_content_catalog("data/content/catalog.json")
+    except Exception as e:
+        logger.error(f"Error loading content catalog: {e}")
+        return None
+
 def render_recommendation_engine():
     """Render recommendation review and approval workflow."""
     st.title("🎯 Recommendation Engine")
@@ -34,7 +44,7 @@ def render_recommendation_engine():
     st.markdown("Review and approve recommendations before delivery")
     
     # Status filter
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
         status_filter = st.selectbox(
             "Filter by Status",
@@ -44,7 +54,15 @@ def render_recommendation_engine():
     with col2:
         limit = st.number_input("Limit", min_value=10, max_value=200, value=50, step=10)
     with col3:
-        if st.button("🔄 Refresh", help="Refresh the recommendation list to see the latest data"):
+        st.markdown("<br>", unsafe_allow_html=True)  # Vertical alignment
+        refresh_clicked = st.button(
+            "🔄 Refresh", 
+            help="Refresh the recommendation list to see the latest data from the database. Use this after generating new recommendations or when data seems stale.",
+            use_container_width=True,
+            type="secondary",
+            key="refresh_recommendations"
+        )
+        if refresh_clicked:
             st.rerun()
     
     # Map filter to API status
@@ -59,7 +77,8 @@ def render_recommendation_engine():
     # Fetch recommendations
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
-        recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
+        with st.spinner("Loading recommendations..."):
+            recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
         
         if not recommendations:
             # Show helpful debug info
@@ -162,14 +181,12 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                 logger.warning("No results from database query")
                 return []
             
-            # Load content catalog
-            try:
-                catalog = load_content_catalog("data/content/catalog.json")
+            # Load content catalog (cached)
+            catalog = _load_content_catalog_cached()
+            if catalog:
                 logger.info(f"Loaded content catalog with {len(catalog.items)} items")
-            except Exception as e:
-                logger.error(f"Error loading content catalog: {e}")
-                # Continue anyway - we'll use fallback values
-                catalog = None
+            else:
+                logger.warning("Content catalog not available, using fallback values")
             
             recommendations = []
             missing_content = []

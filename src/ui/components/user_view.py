@@ -382,6 +382,19 @@ def render_persona_section(profile: Dict[str, Any]):
 
 def render_recommendations_section(user_id: str, profile: Dict[str, Any]):
     """Render recommendations section."""
+    # Check consent status first - block recommendations if no consent
+    consent_status = get_user_consent_status(user_id)
+    
+    if consent_status is False:
+        st.header("💡 Recommendations for You")
+        st.warning("""
+        ⚠️ **Recommendations are disabled**
+        
+        You have not consented to data sharing. To receive personalized financial recommendations, 
+        please grant consent using the button above.
+        """)
+        return
+    
     # Handle fresh recommendation generation
     if st.session_state.get(f'generate_fresh_recs_{user_id}', False):
         st.session_state[f'generate_fresh_recs_{user_id}'] = False  # Reset flag
@@ -426,9 +439,18 @@ def render_recommendations_section(user_id: str, profile: Dict[str, Any]):
         st.error(f"Error loading recommendations: {str(e)}")
 
 def get_recommendations_from_db(user_id: str) -> list:
-    """Get recommendations directly from database."""
+    """Get recommendations directly from database.
+    
+    Returns empty list if user has not consented to data sharing.
+    """
     try:
         from src.db.connection import database_transaction
+        
+        # Check consent first - don't return recommendations if no consent
+        consent_status = get_user_consent_status(user_id)
+        if consent_status is False:
+            logger.info(f"Blocking recommendations for {user_id}: No consent")
+            return []
         
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
         with database_transaction(db_path) as conn:
@@ -568,6 +590,12 @@ def generate_fresh_recommendations(user_id: str) -> bool:
     """Generate fresh recommendations for a user on-demand."""
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        
+        # Check consent status first
+        consent_status = get_user_consent_status(user_id)
+        if consent_status is False:
+            logger.warning(f"Cannot generate recommendations for {user_id}: No consent")
+            return False
         
         # Get user signals
         signals_dict = get_user_signals(user_id, '180d', db_path)

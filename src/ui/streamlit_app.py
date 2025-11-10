@@ -488,6 +488,11 @@ def main():
     elif selected_page == "System Logs":
         render_system_logs()
     
+    # Clear loading flag for other pages
+    if selected_page != "Recommendation Engine":
+        if 'loading_recommendations' in st.session_state:
+            del st.session_state.loading_recommendations
+    
     # Footer
     st.markdown("---")
     st.markdown("*SpendSense Operator Dashboard v1.0*")
