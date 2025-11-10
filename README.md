@@ -51,7 +51,7 @@ make down       # Stop container
 - **Operator Dashboard Guide**: `docs/OPERATOR_DASHBOARD_GUIDE.md`
 - **Architecture Guide**: `docs/Architecture-Guide.md`
 - **Testing Manual**: `docs/Testing-Manual.md`
-- **Railway Deployment**: `docs/RAILWAY_QUICK_DEPLOY.md`
+- **Railway Deployment**: `docs/RAILWAY_QUICK_DEPLOY.md` (initial steps taken, but deployment abandoned in favor of local-only per requirements)
 - **Requirements Comparison**: `docs/REQUIREMENTS_COMPARISON.md`
 
 ## 🔌 API
