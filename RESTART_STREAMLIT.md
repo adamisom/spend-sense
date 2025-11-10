@@ -39,26 +39,29 @@ lsof -ti:8501 | xargs kill -9
 
 ## ▶️ Start Streamlit
 
-**Option 1: Run locally (recommended for development)**
+**Recommended: Run in Docker (avoids Python version issues)**
 ```bash
-# From project root
-streamlit run src/ui/streamlit_app.py
-```
-Access at: `http://localhost:8501`
-
-**Option 2: Run in Docker container**
-```bash
-# Start container
+# Start container (if not already running)
 docker-compose up -d
 
 # Then exec into container and run Streamlit
 docker-compose exec spendsense-app streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
 ```
 
-**Option 3: Use Makefile**
+**Or use Makefile:**
 ```bash
 make ui
 ```
+
+**Alternative: Run locally (requires Python 3.9-3.11 and all dependencies)**
+```bash
+# Activate virtual environment first
+source venv/bin/activate
+
+# Then run Streamlit
+streamlit run src/ui/streamlit_app.py
+```
+Access at: `http://localhost:8501`
 
 ## 🔄 When to Restart Streamlit
 
