@@ -122,7 +122,8 @@ def render_user_view():
                 'insufficient_data': '⚪'
             }
             
-            for uid in available_user_ids[:20]:  # Limit to first 20 for performance
+            # Show all users (no pagination needed for 30 users)
+            for uid in available_user_ids:
                 persona_id = user_personas.get(uid, 'insufficient_data')
                 color = persona_colors.get(persona_id, '#6c757d')
                 
@@ -135,8 +136,6 @@ def render_user_view():
                 if st.button(button_label, key=f"sidebar_user_{uid}", use_container_width=True):
                     st.session_state.user_id_to_view = uid
                     st.rerun()
-            if len(available_user_ids) > 20:
-                st.caption(f"... and {len(available_user_ids) - 20} more")
     
     # Use session state to persist user_id
     if 'user_id_to_view' not in st.session_state:
@@ -212,7 +211,7 @@ def render_user_view():
             
             num_cols = min(5, len(available_user_ids))
             cols = st.columns(num_cols)
-            for idx, uid in enumerate(available_user_ids[:20]):  # Limit for performance
+            for idx, uid in enumerate(available_user_ids):  # Show all users
                 persona_id = user_personas.get(uid, 'insufficient_data')
                 color = persona_colors.get(persona_id, '#6c757d')
                 
@@ -226,8 +225,6 @@ def render_user_view():
                     if st.button(button_label, key=f"main_user_btn_{uid}", use_container_width=True):
                         st.session_state.user_id_to_view = uid
                         st.rerun()
-            if len(available_user_ids) > 20:
-                st.caption(f"... and {len(available_user_ids) - 20} more (see sidebar for all)")
             st.markdown("---")
         
         st.info("👆 Enter your user ID above, or click one of the user IDs in the sidebar or below to see personalized financial insights")
