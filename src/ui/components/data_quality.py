@@ -19,6 +19,45 @@ def render_data_quality():
     st.title("📊 Data Quality Analysis")
     st.markdown("Monitor data quality scores and identify users with low-quality data")
     
+    # Explanation of data quality calculation
+    with st.expander("ℹ️ How Data Quality is Calculated", expanded=False):
+        st.markdown("""
+        **Data Quality Score (0.0 - 1.0)** measures confidence in user signals based on:
+        
+        **1. Transaction Volume** (score multiplier)
+        - < 10 transactions: Score × 0.3 (70% reduction)
+        - 10-19 transactions: Score × 0.5 (50% reduction)
+        - 20-49 transactions: Score × 0.7 (30% reduction)
+        - 50-99 transactions: Score × 0.85 (15% reduction)
+        - 100+ transactions: No reduction
+        
+        **2. Transaction Density** (transactions per day over 180-day window)
+        - < 0.1/day (1 per 10 days): Score × 0.6 (40% reduction)
+        - 0.1-0.3/day (1 per 3 days): Score × 0.75 (25% reduction)
+        - 0.3-0.5/day (1 per 2 days): Score × 0.85 (15% reduction)
+        - 0.5+ transactions/day: No reduction
+        
+        **3. Data Recency** (days since most recent transaction)
+        - > 90 days old: Score × 0.5 (50% reduction)
+        - 60-90 days old: Score × 0.7 (30% reduction)
+        - 30-60 days old: Score × 0.85 (15% reduction)
+        - < 30 days old: No reduction
+        
+        **4. Signal Completeness** (missing critical signals)
+        - Missing 3+ critical signals: Score × 0.6 (40% reduction)
+        - Missing 2 critical signals: Score × 0.75 (25% reduction)
+        - Missing 1 critical signal: Score × 0.9 (10% reduction)
+        - Critical signals: credit utilization, subscription spend, savings inflow, income pay gap, bank fees
+        
+        **5. Computation Errors**
+        - Each error: Score × (1.0 - 0.15 × error_count), minimum 0.3
+        
+        **6. Account Coverage**
+        - Missing both credit cards AND savings accounts: Score × 0.8 (20% reduction)
+        
+        **Final Score**: Multiplicative penalties applied, then clamped to 0.0-1.0 range.
+        """)
+    
     # Get data quality metrics
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
