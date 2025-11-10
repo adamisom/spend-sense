@@ -19,7 +19,9 @@ STREAMLIT_PASSWORD=your_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
-**Note**: If you skip `STREAMLIT_PASSWORD`, the app will work without password protection (fine for dev/demo).
+**Note**: 
+- If you skip `STREAMLIT_PASSWORD`, the app will work without password protection (fine for dev/demo)
+- **For evaluators**: Set a password and share it with them (along with the Railway URL)
 
 ### 3. Deploy
 
