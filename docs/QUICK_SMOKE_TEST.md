@@ -59,19 +59,22 @@ streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.
 
 ### Test 4: Dashboard Functionality (1 min)
 **In browser:**
-1. ✅ Sidebar shows "🔧 Compute Signals" button
-2. ✅ System Overview shows user count > 0
+1. ✅ System Overview shows user count > 0
+2. ✅ "🔄 Refresh Data" and "🔧 Compute Signals" buttons visible on System Overview
 3. ✅ User Analytics page loads
 4. ✅ Data Quality page shows metrics
-5. ✅ No red error messages
+5. ✅ Recommendation Engine page loads (may take a few seconds)
+6. ✅ No red error messages
 
 ### Test 5: Signal Computation from Dashboard (1 min)
 **In browser:**
-1. Click "🔧 Compute Signals" in sidebar
-2. Wait for spinner (may take 1-2 minutes)
-3. ✅ See success message
-4. ✅ Refresh page - persona data should appear
-5. ✅ Data quality scores should be > 0
+1. Navigate to "System Overview" page
+2. Click "🔧 Compute Signals" button
+3. Wait for spinner and info message (may take 1-2 minutes)
+4. ✅ See success message: "✅ Signal computation complete for X users!"
+5. ✅ Page auto-refreshes after 3 seconds
+6. ✅ Persona data should appear (colored icons in User View instead of gray)
+7. ✅ Data quality scores should be > 0
 
 ## ✅ Success Criteria
 
@@ -79,14 +82,17 @@ streamlit run src/ui/streamlit_app.py --server.port 8501 --server.address 0.0.0.
 - [ ] Signal computation script runs without errors
 - [ ] Dashboard loads without Streamlit errors
 - [ ] All pages render without crashes
-- [ ] Signal computation button works
+- [ ] Signal computation button works (on System Overview page)
 - [ ] Persona data appears after computation
 - [ ] Data quality scores are > 0 after computation
+- [ ] Recommendations show standardized disclaimer: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
+- [ ] Decision traces visible in Recommendation Engine page
+- [ ] Consent management works (users without consent can't see recommendations)
 
 ## 🐛 Common Issues & Quick Fixes
 
 **Issue: "No persona data available"**
-- Fix: Click "🔧 Compute Signals" button or run `python scripts/compute_signals.py`
+- Fix: Navigate to System Overview page, click "🔧 Compute Signals" button, or run `python scripts/compute_signals.py`
 
 **Issue: "Data quality is 0.0"**
 - Fix: Run signal computation - signals need to be computed first

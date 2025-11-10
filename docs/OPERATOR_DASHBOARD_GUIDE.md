@@ -63,6 +63,9 @@ The SpendSense Operator Dashboard provides 7 main views:
 - User-friendly language (not technical)
 - Clear persona explanation
 - Actionable recommendations with rationales
+- **Consent Management**: Users can grant/revoke consent (affects recommendation visibility)
+- **Get New Recommendations**: Button to generate fresh recommendations on-demand
+- **Standardized Disclaimers**: All recommendations include: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
 - Recommendations automatically marked as viewed when displayed
 
 **Use Cases**:
@@ -94,8 +97,7 @@ The SpendSense Operator Dashboard provides 7 main views:
 **How to Use**:
 - Check system health at a glance
 - Monitor key metrics for anomalies
-- Use "🔄 Refresh Data" button to update metrics
-- Enable "Auto-refresh (30s)" for continuous monitoring
+- Use "🔄 Refresh Data" button to update metrics (reloads all data from database)
 
 **Use Cases**:
 - Daily health checks
@@ -119,7 +121,7 @@ The SpendSense Operator Dashboard provides 7 main views:
 #### Persona Distribution
 - Pie chart showing persona breakdown
 - Table with persona counts and percentages
-- Shows all 5 personas: High Utilization, Variable Income, Subscription-Heavy, Savings Builder, Fee Fighter
+- Shows all 6 personas: High Utilization, Variable Income, Subscription-Heavy, Savings Builder, Fee Fighter, Fraud Risk
 
 #### Data Quality Analysis
 - Histogram of data quality scores
@@ -163,15 +165,18 @@ The SpendSense Operator Dashboard provides 7 main views:
   - User ID and persona
   - Content title and description
   - Rationale explaining why recommendation was made
+  - **Decision Trace**: Full audit trail showing how recommendation was generated (persona classification, signal mapping, filtering, scoring steps)
   - Approval status
   - Created timestamp
+- **Refresh Button**: Manually refresh the recommendation list to see latest data from database
 
 **How to Use**:
 1. View recommendations in approval queue
 2. Review rationale for each recommendation
-3. Approve or reject recommendations (if approval workflow implemented)
-4. Filter by status (Pending / Approved / Rejected)
-5. Search by user ID or content ID
+3. **View Decision Trace**: Click "🔍 View Decision Trace (Audit Trail)" expander to see full audit trail of recommendation generation
+4. Approve or reject recommendations (if approval workflow implemented)
+5. Filter by status (Pending / Approved / Rejected)
+6. Use "🔄 Refresh" button to reload recommendations from database
 
 **Use Cases**:
 - Review recommendations before delivery
@@ -281,37 +286,34 @@ The SpendSense Operator Dashboard provides 7 main views:
 
 ---
 
-## ⚙️ Dashboard Settings
+## ⚙️ Dashboard Controls
 
-### Sidebar Controls
+### System Overview Page
 
-**Database Path**:
-- Default: `db/spend_sense.db`
-- Change to use a different database file
-- Updates automatically when changed
-
-**Auto-refresh**:
-- Checkbox to enable auto-refresh every 30 seconds
-- Useful for monitoring real-time changes
-- Disable to reduce resource usage
-
-**Refresh Data Button**:
-- Manual refresh of all dashboard data
-- Updates all metrics and displays
-- Shows last refresh timestamp in sidebar
+**🔄 Refresh Data Button**:
+- **Purpose**: Reload all data from the database
+- **When to use**: After running scripts, when data seems stale, or after generating new recommendations
+- **What it does**: Refreshes all metrics and displays with latest database content
+- **Location**: System Overview page (top of page)
 
 **🔧 Compute Signals Button**:
+- **Purpose**: Compute behavioral signals for all users
+- **When to use**: When users have gray icons (no personas) or when you need to recompute signals
+- **Location**: System Overview page (top of page)
+
+**🔧 Compute Signals Button** (System Overview page):
 - **What it does**: Computes behavioral signals for all users (credit utilization, subscriptions, savings, income patterns)
 - **When to use**: When users have gray icons (no personas assigned) or when you need to recompute signals
 - **What to expect**:
-  - Spinner appears: "Computing signals for all users... This may take a few minutes"
+  - Info message: "🔄 Computing signals for all users... This may take 1-2 minutes. Please wait."
+  - Spinner appears: "⏳ Processing... This may take a few minutes."
   - Takes 1-2 minutes for 50 users
   - On success: "✅ Signal computation complete for X users!" with next steps
-  - Page auto-refreshes after completion
+  - Page auto-refreshes after 3 seconds
 - **After completion**:
   - User personas will appear (colored icons instead of gray in User View)
   - You can now view personalized recommendations
-  - To generate recommendations: The system will auto-generate them, or you can wait for the initialization script to complete
+  - To generate recommendations: Use "🔄 Get New Recommendations" button in User View, or run `python scripts/generate_recommendations.py --all`
 
 ---
 
@@ -362,10 +364,13 @@ The SpendSense Operator Dashboard provides 7 main views:
 ### Task 6: View End-User Experience
 
 1. Navigate to "User View"
-2. Enter a test user ID (e.g., `user_001`)
+2. Enter a test user ID (e.g., `user_001`) or click a user ID from the list
 3. Click "🔍 Load My Profile"
 4. Review persona card and recommendations
 5. Verify user-friendly language and clear rationales
+6. Check that disclaimers appear: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
+7. Test "🔄 Get New Recommendations" button to generate fresh recommendations
+8. Test consent toggle (if user has no consent, recommendations should be blocked)
 
 ---
 
@@ -396,20 +401,20 @@ The SpendSense Operator Dashboard provides 7 main views:
 **Issue**: Metrics show stale data
 
 **Solutions**:
-- Click "🔄 Refresh Data" button
-- Check database path is correct
+- Click "🔄 Refresh Data" button on System Overview page
 - Verify database file exists and is accessible
 - Check for database lock errors in logs
+- Note: Database path is set via `DATABASE_PATH` environment variable (default: `db/spend_sense.db`)
 
 ### Performance Issues
 
 **Issue**: Dashboard is slow or unresponsive
 
 **Solutions**:
-- Disable auto-refresh if enabled
 - Reduce number of users in database
 - Check database file size (SQLite can be slow with large files)
 - Consider using a smaller test database
+- Recommendation Engine page may take a few seconds to load (this is normal)
 
 ### Fairness Metrics Not Showing
 
