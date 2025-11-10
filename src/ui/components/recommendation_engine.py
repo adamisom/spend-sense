@@ -59,7 +59,20 @@ def render_recommendation_engine():
     # Fetch recommendations
     try:
         db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        
+        # Debug: Show what we're querying
+        with st.expander("🔍 Debug Info", expanded=False):
+            st.write(f"Database path: `{db_path}`")
+            st.write(f"Status filter: `{status_filter}` (mapped to: `{api_status}`)")
+            st.write(f"Limit: `{limit}`")
+        
         recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
+        
+        # Debug: Show what we got
+        with st.expander("🔍 Debug Info", expanded=False):
+            st.write(f"Recommendations returned: `{len(recommendations)}`")
+            if recommendations:
+                st.write(f"First recommendation: `{recommendations[0].get('title', 'N/A')}`")
         
         if not recommendations:
             # Show helpful debug info
@@ -109,8 +122,10 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
         else:
             where_clause = ""
         
+        logger.info(f"Fetching recommendations: status={status}, limit={limit}, where={where_clause}")
+        
         with database_transaction(db_path) as conn:
-            results = conn.execute(f"""
+            query = f"""
                 SELECT 
                     rec_id,
                     user_id,
@@ -124,27 +139,41 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                 {where_clause}
                 ORDER BY created_at DESC
                 LIMIT ?
-            """, (limit,)).fetchall()
+            """
+            logger.debug(f"Executing query: {query}")
+            results = conn.execute(query, (limit,)).fetchall()
+            
+            logger.info(f"Query returned {len(results)} rows")
             
             if not results:
+                logger.warning("No results from database query")
                 return []
             
             # Load content catalog
-            catalog = load_content_catalog("data/content/catalog.json")
+            try:
+                catalog = load_content_catalog("data/content/catalog.json")
+                logger.info(f"Loaded content catalog with {len(catalog.items)} items")
+            except Exception as e:
+                logger.error(f"Error loading content catalog: {e}")
+                # Continue anyway - we'll use fallback values
+                catalog = None
             
             recommendations = []
             missing_content = []
             for row in results:
                 content_id = row['content_id']
-                content_item = next(
-                    (item for item in catalog.items if item.content_id == content_id),
-                    None
-                )
+                
+                # Try to find content item in catalog
+                content_item = None
+                if catalog:
+                    content_item = next(
+                        (item for item in catalog.items if item.content_id == content_id),
+                        None
+                    )
                 
                 # Track missing content items for debugging
                 if not content_item:
                     missing_content.append(content_id)
-                    # Still add it with fallback values so it shows up
                     logger.warning(f"Content item not found in catalog: {content_id}")
                 
                 # Parse decision_trace if present
@@ -153,7 +182,8 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     import json
                     try:
                         decision_trace = json.loads(row['decision_trace'])
-                    except (json.JSONDecodeError, TypeError):
+                    except (json.JSONDecodeError, TypeError) as e:
+                        logger.warning(f"Error parsing decision_trace: {e}")
                         decision_trace = None
                 
                 recommendations.append({
@@ -161,7 +191,7 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     "user_id": row['user_id'],
                     "content_id": content_id,
                     "title": content_item.title if content_item else f"Unknown ({content_id})",
-                    "type": content_item.type.value if content_item else "unknown",
+                    "type": content_item.type.value if content_item and hasattr(content_item.type, 'value') else (content_item.type if content_item else "unknown"),
                     "rationale": row['rationale'],
                     "created_at": row['created_at'],
                     "approved": row['approved'],
@@ -173,10 +203,13 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
             if missing_content:
                 logger.warning(f"Missing content items in catalog: {missing_content[:5]}")
             
+            logger.info(f"Returning {len(recommendations)} recommendations")
             return recommendations
             
     except Exception as e:
-        logger.error(f"Error getting approval queue: {e}")
+        logger.error(f"Error getting approval queue: {e}", exc_info=True)
+        import traceback
+        logger.error(traceback.format_exc())
         return []
 
 def render_recommendation_review_card(rec: Dict[str, Any], idx: int):
