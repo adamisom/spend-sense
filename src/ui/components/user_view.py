@@ -11,7 +11,9 @@ from typing import Optional, Dict, Any
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.append(str(project_root))
 
-from src.db.connection import database_transaction
+from src.db.connection import database_transaction, get_user_signals
+from src.features.schema import UserSignals
+from src.recommend.recommendation_engine import RecommendationEngine, save_recommendations
 from loguru import logger
 
 def get_available_user_ids() -> list:
@@ -290,14 +292,37 @@ def render_persona_section(profile: Dict[str, Any]):
 
 def render_recommendations_section(user_id: str, profile: Dict[str, Any]):
     """Render recommendations section."""
-    st.header("💡 Recommendations for You")
+    # Handle fresh recommendation generation
+    if st.session_state.get(f'generate_fresh_recs_{user_id}', False):
+        st.session_state[f'generate_fresh_recs_{user_id}'] = False  # Reset flag
+        
+        st.info("🔄 Generating fresh recommendations... This may take a few seconds.")
+        with st.spinner("⏳ Processing..."):
+            success = generate_fresh_recommendations(user_id)
+        
+        if success:
+            st.success("✅ New recommendations generated! Refreshing...")
+            import time
+            time.sleep(1)
+            st.rerun()
+        else:
+            st.error("❌ Failed to generate recommendations. Please try again.")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.header("💡 Recommendations for You")
+    with col2:
+        if st.button("🔄 Get New Recommendations", type="primary", use_container_width=True, 
+                     help="Generate fresh recommendations based on your latest financial data"):
+            st.session_state[f'generate_fresh_recs_{user_id}'] = True
+            st.rerun()
     
     try:
         # Get recommendations from database
         recommendations = get_recommendations_from_db(user_id)
         
         if not recommendations:
-            st.info("📝 No recommendations available yet. Check back soon!")
+            st.info("📝 No recommendations available yet. Click 'Get New Recommendations' above to generate personalized recommendations!")
             return
         
         st.markdown(f"*We've found {len(recommendations)} personalized recommendations based on your financial profile*")
@@ -449,6 +474,43 @@ def render_recommendation_card(rec: Dict[str, Any], idx: int):
         
         # Mark as viewed
         mark_recommendation_viewed(rec['rec_id'])
+
+def generate_fresh_recommendations(user_id: str) -> bool:
+    """Generate fresh recommendations for a user on-demand."""
+    try:
+        db_path = st.session_state.get('db_path', 'db/spend_sense.db')
+        
+        # Get user signals
+        signals_dict = get_user_signals(user_id, '180d', db_path)
+        if not signals_dict:
+            logger.warning(f"No signals found for {user_id}")
+            return False
+        
+        signals = UserSignals(**signals_dict)
+        
+        # Generate recommendations
+        engine = RecommendationEngine()
+        recommendations = engine.generate_recommendations(
+            user_id=user_id,
+            signals=signals,
+            max_recommendations=5
+        )
+        
+        if not recommendations:
+            logger.warning(f"No recommendations generated for {user_id}")
+            return False
+        
+        # Save to database (this will create new recommendations)
+        if save_recommendations(user_id, recommendations, db_path):
+            logger.info(f"Generated {len(recommendations)} fresh recommendations for {user_id}")
+            return True
+        else:
+            logger.error(f"Failed to save recommendations for {user_id}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error generating fresh recommendations for {user_id}: {e}")
+        return False
 
 def mark_recommendation_viewed(rec_id: str):
     """Mark recommendation as viewed."""
