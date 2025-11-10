@@ -130,6 +130,9 @@ def get_system_health() -> dict:
             """).fetchone()[0]
             avg_data_quality = avg_data_quality_result if avg_data_quality_result is not None else 0.0
             
+            # Diagnostic: Check if transactions exist
+            transaction_count = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+            
             # Recent activity
             recent_recommendations = conn.execute("""
                 SELECT COUNT(*) FROM recommendations 
@@ -143,20 +146,22 @@ def get_system_health() -> dict:
                 'signal_coverage': users_with_signals / max(total_users, 1) * 100,
                 'avg_data_quality': avg_data_quality,
                 'recent_recommendations': recent_recommendations,
+                'transaction_count': transaction_count,
                 'system_status': 'healthy' if users_with_signals > 0 else 'error'
             }
             
     except Exception as e:
         logger.error(f"Error getting system health: {e}")
-        return {
-            'total_users': 0,
-            'users_with_signals': 0,
-            'users_with_recommendations': 0,
-            'signal_coverage': 0.0,
-            'avg_data_quality': 0.0,
-            'recent_recommendations': 0,
-            'system_status': 'error'
-        }
+            return {
+                'total_users': 0,
+                'users_with_signals': 0,
+                'users_with_recommendations': 0,
+                'signal_coverage': 0.0,
+                'avg_data_quality': 0.0,
+                'recent_recommendations': 0,
+                'transaction_count': 0,
+                'system_status': 'error'
+            }
 
 def render_sidebar():
     """Render sidebar with navigation and controls."""
@@ -220,7 +225,8 @@ def render_sidebar():
     👥 Users: {health['total_users']}<br>
     📊 Signal Coverage: {health['signal_coverage']:.1f}%<br>
     🎯 Avg Data Quality: {health['avg_data_quality']:.2f}<br>
-    📝 Recent Recs: {health['recent_recommendations']}
+    📝 Recent Recs: {health['recent_recommendations']}<br>
+    💳 Transactions: {health.get('transaction_count', 0):,}
     </div>
     """, unsafe_allow_html=True)
     
@@ -349,24 +355,56 @@ def main():
             user_match = re.search(r'(\d+)\s*users?', message, re.IGNORECASE)
             user_count = user_match.group(1) if user_match else "all"
             
-            st.success(f"✅ **Signal computation complete for {user_count} users!**")
-            st.info("""
-            **What happened:**
-            - Behavioral signals have been computed for all users
-            - User personas should now appear (colored icons instead of gray in User View)
+            # Check if signals actually have data quality > 0
+            with database_transaction(st.session_state.db_path) as conn:
+                sample_result = conn.execute("""
+                    SELECT signals FROM user_signals 
+                    WHERE window = '180d' 
+                    LIMIT 1
+                """).fetchone()
+                
+                if sample_result:
+                    import json
+                    sample_signals = json.loads(sample_result['signals'])
+                    sample_quality = sample_signals.get('data_quality_score', 0.0)
+                    
+                    if sample_quality == 0.0:
+                        st.warning("⚠️ **Signals computed but data quality is 0.0**")
+                        st.info(f"""
+                        **Diagnosis:**
+                        - Signals were saved to database
+                        - But data_quality_score = 0.0 for all users
+                        - This usually means transactions are empty or computation failed
+                        
+                        **Check:**
+                        - Are there transactions in the database?
+                        - Check Railway logs for computation errors
+                        - Sample signal keys: {list(sample_signals.keys())[:5]}
+                        """)
+                    else:
+                        st.success(f"✅ **Signal computation complete for {user_count} users!**")
+                        st.info("""
+                        **What happened:**
+                        - Behavioral signals have been computed for all users
+                        - User personas should now appear (colored icons instead of gray in User View)
+                        
+                        **Next steps:**
+                        1. The page will refresh automatically in a moment
+                        2. Go to "User View" and click a user ID to see their persona
+                        3. Recommendations will be auto-generated (or run `python scripts/generate_recommendations.py --all`)
+                        """)
+                else:
+                    st.error("❌ **No signals found in database after computation**")
+                    st.info("Check Railway logs for errors")
             
-            **Next steps:**
-            1. The page will refresh automatically in a moment
-            2. Go to "User View" and click a user ID to see their persona
-            3. Recommendations will be auto-generated (or run `python scripts/generate_recommendations.py --all`)
-            """)
             st.session_state.last_refresh = datetime.now()
             import time
-            time.sleep(2)  # Give user time to read the message
+            time.sleep(3)  # Give user time to read the message
             st.rerun()
         else:
             st.error(f"❌ **Signal computation failed**")
             st.error(f"Error: {message}")
+            st.code(message[:500] if len(message) > 500 else message)  # Show error details
             st.info("💡 You can also run: `python scripts/compute_signals.py` from the command line")
     
     # Auto-refresh logic
