@@ -23,7 +23,7 @@ DATABASE_PATH=/app/db/spend_sense.db
 - Copy the public URL (e.g., `https://spendsense-production.up.railway.app`)
 
 ### 4. Initialize Database
-Railway dashboard → Your service → **Deployments** → Click latest deployment → **View Logs** → Open **Shell/Terminal**:
+Railway dashboard → Your service → Click **"Shell"** or **"Terminal"** button (top right of service view):
 
 ```bash
 python -c "from src.db.connection import initialize_db; initialize_db()"
@@ -32,6 +32,8 @@ python scripts/load_data.py
 python scripts/compute_signals.py
 python scripts/generate_recommendations.py --all
 ```
+
+**Note**: The Shell opens a terminal session in your running container. If you don't see a Shell button, use Railway CLI: `railway shell`
 
 ---
 
