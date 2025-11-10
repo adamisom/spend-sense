@@ -10,19 +10,20 @@
 - Choose `spend-sense` repository
 - Railway auto-detects Dockerfile
 
-### 2. Set Environment Variables
+### 2. Set Environment Variables (Optional)
 
 In Railway dashboard → Your service → **Variables** tab → Click **"New Variable"**:
 
 ```
-STREAMLIT_PASSWORD=your_password_here
 DATABASE_PATH=/app/db/spend_sense.db
 ```
 
-**Note**:
+**Optional - Password Protection:**
+```
+STREAMLIT_PASSWORD=your_password_here
+```
 
-- If you skip `STREAMLIT_PASSWORD`, the app will work without password protection (fine for dev/demo)
-- **For evaluators**: Set a password and share it with them (along with the Railway URL)
+**Note**: Skip `STREAMLIT_PASSWORD` to run without password protection (fine for dev/demo). Set it later if you want to add protection for evaluators.
 
 ### 3. Deploy
 
