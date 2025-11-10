@@ -138,6 +138,23 @@ def get_system_health() -> dict:
                 WHERE created_at >= datetime('now', '-24 hours')
             """).fetchone()[0]
             
+            # Determine health status based on multiple criteria
+            health_checks = {
+                'has_users': total_users > 0,
+                'has_transactions': transaction_count > 0,
+                'has_signals': users_with_signals > 0,
+                'has_data_quality': avg_data_quality > 0.0,
+                'has_recent_activity': recent_recommendations > 0 or users_with_recommendations > 0
+            }
+            
+            # System is healthy if core components are working
+            is_healthy = (
+                health_checks['has_users'] and
+                health_checks['has_transactions'] and
+                health_checks['has_signals'] and
+                health_checks['has_data_quality']
+            )
+            
             return {
                 'total_users': total_users,
                 'users_with_signals': users_with_signals,
@@ -146,7 +163,8 @@ def get_system_health() -> dict:
                 'avg_data_quality': avg_data_quality,
                 'recent_recommendations': recent_recommendations,
                 'transaction_count': transaction_count,
-                'system_status': 'healthy' if users_with_signals > 0 else 'error'
+                'system_status': 'healthy' if is_healthy else 'error',
+                'health_checks': health_checks
             }
             
     except Exception as e:
@@ -159,7 +177,14 @@ def get_system_health() -> dict:
             'avg_data_quality': 0.0,
             'recent_recommendations': 0,
             'transaction_count': 0,
-            'system_status': 'error'
+            'system_status': 'error',
+            'health_checks': {
+                'has_users': False,
+                'has_transactions': False,
+                'has_signals': False,
+                'has_data_quality': False,
+                'has_recent_activity': False
+            }
         }
 
 def render_sidebar():
@@ -208,11 +233,43 @@ def render_sidebar():
     st.sidebar.subheader("🏥 System Health")
     
     health = get_system_health()
+    health_checks = health.get('health_checks', {})
     
+    # Show health status with expandable details
     if health['system_status'] == 'healthy':
-        st.sidebar.success("✅ System Healthy")
+        with st.sidebar.expander("✅ System Healthy", expanded=False):
+            st.markdown("**Health Criteria:**")
+            checks = health_checks
+            if checks.get('has_users'):
+                st.markdown("✅ Users loaded")
+            if checks.get('has_transactions'):
+                st.markdown("✅ Transactions available")
+            if checks.get('has_signals'):
+                st.markdown("✅ Signals computed")
+            if checks.get('has_data_quality'):
+                st.markdown("✅ Data quality > 0")
+            if checks.get('has_recent_activity'):
+                st.markdown("✅ Recent activity detected")
+            else:
+                st.markdown("ℹ️ No recent recommendations (may be normal)")
     else:
-        st.sidebar.error("❌ System Issues")
+        with st.sidebar.expander("❌ System Issues", expanded=True):
+            st.markdown("**Missing Components:**")
+            checks = health_checks
+            if not checks.get('has_users'):
+                st.markdown("❌ No users in database")
+                st.info("💡 Run data generator: `python -m src.ingest.data_generator --users 50`")
+            if not checks.get('has_transactions'):
+                st.markdown("❌ No transactions found")
+                st.info("💡 Run: `python scripts/load_data.py`")
+            if not checks.get('has_signals'):
+                st.markdown("❌ No signals computed")
+                st.info("💡 Click '🔧 Compute Signals' button above")
+            if not checks.get('has_data_quality'):
+                st.markdown("❌ Data quality is 0.0")
+                st.info("💡 Check transactions and recompute signals")
+            if checks.get('has_users') and checks.get('has_transactions') and not checks.get('has_signals'):
+                st.markdown("⚠️ **Action needed:** Compute signals for users")
     
     st.sidebar.markdown(f"""
     <div class="sidebar-info">
