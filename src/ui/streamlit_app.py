@@ -202,19 +202,6 @@ def render_sidebar():
     
     st.sidebar.markdown("---")
     
-    # Database settings (for development/testing)
-    st.sidebar.subheader("⚙️ Settings")
-    with st.sidebar.expander("🔧 Developer Options", expanded=False):
-        new_db_path = st.sidebar.text_input(
-            "Database Path", 
-            value=st.session_state.db_path,
-            help="Change database file (for testing with different databases). Default uses DATABASE_PATH env var or db/spend_sense.db"
-        )
-        
-        if new_db_path != st.session_state.db_path:
-            st.session_state.db_path = new_db_path
-            st.rerun()
-    
     # Manual refresh button
     if st.sidebar.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale."):
         st.session_state.last_refresh = datetime.now()
