@@ -90,6 +90,24 @@ def render_performance_metrics():
         
         # Fairness metrics
         st.subheader("⚖️ Fairness Metrics")
+        
+        # Explanation of Fairness Metrics
+        with st.expander("ℹ️ What are Fairness Metrics?", expanded=False):
+            st.markdown("""
+            **Fairness Metrics** measure whether the recommendation system treats all demographic groups equitably.
+            
+            **Recommendation Rate** = Percentage of users in each demographic group who have received recommendations.
+            - Example: If a group has 10 users and 8 have recommendations, the rate is 80%
+            - **Goal**: All groups should have similar rates (fair access to recommendations)
+            - **Parity (CV)**: Coefficient of Variation measures how much rates vary across groups
+              - Lower is better (0% = perfect parity, all groups have same rate)
+              - < 10% = Good parity
+              - > 10% = Needs review (significant disparities)
+            
+            **Why this matters**: We want to ensure no demographic group is systematically excluded from receiving 
+            personalized financial recommendations. Disparities could indicate bias in the system.
+            """)
+        
         try:
             from src.evaluation.metrics import calculate_fairness_metrics
             

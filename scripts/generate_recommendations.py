@@ -18,6 +18,20 @@ from loguru import logger
 
 def generate_for_user(user_id: str, db_path: str = "db/spend_sense.db", max_recs: int = 5):
     """Generate recommendations for a single user."""
+    # Check consent status
+    with database_transaction(db_path) as conn:
+        user_row = conn.execute(
+            "SELECT consent_status FROM users WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        
+        if not user_row:
+            logger.warning(f"User {user_id} not found in database")
+            return False
+        
+        if not user_row['consent_status']:
+            logger.info(f"Skipping {user_id}: No consent (consent_status=False)")
+            return False
+    
     # Check if user has signals
     signals_dict = get_user_signals(user_id, '180d', db_path)
     
@@ -26,6 +40,12 @@ def generate_for_user(user_id: str, db_path: str = "db/spend_sense.db", max_recs
         return False
     
     signals = UserSignals(**signals_dict)
+    
+    # Skip users with very low data quality (< 0.3) - insufficient data for reliable recommendations
+    data_quality = signals.data_quality_score
+    if data_quality < 0.3:
+        logger.info(f"Skipping {user_id}: Data quality too low ({data_quality:.2f} < 0.3)")
+        return False
     
     # Generate recommendations
     logger.info(f"Generating recommendations for {user_id}...")
