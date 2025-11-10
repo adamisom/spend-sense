@@ -44,7 +44,7 @@ def render_recommendation_engine():
     with col2:
         limit = st.number_input("Limit", min_value=10, max_value=200, value=50, step=10)
     with col3:
-        if st.button("🔄 Refresh"):
+        if st.button("🔄 Refresh", help="Refresh the recommendation list to see the latest data"):
             st.rerun()
     
     # Map filter to API status
@@ -62,7 +62,23 @@ def render_recommendation_engine():
         recommendations = get_approval_queue(limit=limit, status=api_status, db_path=db_path)
         
         if not recommendations:
-            st.info("📝 No recommendations found")
+            # Show helpful debug info
+            import sqlite3
+            try:
+                with sqlite3.connect(db_path) as conn:
+                    conn.row_factory = sqlite3.Row
+                    total_count = conn.execute("SELECT COUNT(*) FROM recommendations").fetchone()[0]
+                    pending_count = conn.execute("SELECT COUNT(*) FROM recommendations WHERE approved IS NULL").fetchone()[0]
+                    approved_count = conn.execute("SELECT COUNT(*) FROM recommendations WHERE approved = 1").fetchone()[0]
+                    rejected_count = conn.execute("SELECT COUNT(*) FROM recommendations WHERE approved = 0").fetchone()[0]
+                
+                st.info(f"📝 No recommendations found with current filters")
+                st.caption(f"**Database stats:** Total: {total_count} | Pending: {pending_count} | Approved: {approved_count} | Rejected: {rejected_count}")
+                if status_filter != "All":
+                    st.caption(f"💡 Try changing the status filter to 'All' to see all recommendations")
+            except Exception as e:
+                logger.error(f"Error getting debug stats: {e}")
+                st.info("📝 No recommendations found")
             return
         
         st.subheader(f"📋 {len(recommendations)} Recommendations")
@@ -117,12 +133,19 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
             catalog = load_content_catalog("data/content/catalog.json")
             
             recommendations = []
+            missing_content = []
             for row in results:
                 content_id = row['content_id']
                 content_item = next(
                     (item for item in catalog.items if item.content_id == content_id),
                     None
                 )
+                
+                # Track missing content items for debugging
+                if not content_item:
+                    missing_content.append(content_id)
+                    # Still add it with fallback values so it shows up
+                    logger.warning(f"Content item not found in catalog: {content_id}")
                 
                 # Parse decision_trace if present
                 decision_trace = None
@@ -137,14 +160,18 @@ def get_approval_queue(limit: int = 50, status: str = None, db_path: str = None)
                     "rec_id": row['rec_id'],
                     "user_id": row['user_id'],
                     "content_id": content_id,
-                    "title": content_item.title if content_item else "Unknown",
-                    "type": content_item.type if content_item else "unknown",
+                    "title": content_item.title if content_item else f"Unknown ({content_id})",
+                    "type": content_item.type.value if content_item else "unknown",
                     "rationale": row['rationale'],
                     "created_at": row['created_at'],
                     "approved": row['approved'],
                     "delivered": row['delivered'],
                     "decision_trace": decision_trace
                 })
+            
+            # Log if any content items are missing
+            if missing_content:
+                logger.warning(f"Missing content items in catalog: {missing_content[:5]}")
             
             return recommendations
             

@@ -287,14 +287,14 @@ def render_system_overview():
     
     st.markdown("High-level system health and key metrics")
     
-    # Action buttons at top
-    col1, col2, col3 = st.columns([1, 1, 4])
+    # Action buttons at top - made bigger with more prominent layout
+    col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale.", use_container_width=True):
+        if st.button("🔄 Refresh Data", help="Reload all data from the database. Use this after running scripts or when data seems stale.", use_container_width=True, type="primary"):
             st.session_state.last_refresh = datetime.now()
             st.rerun()
     with col2:
-        if st.button("🔧 Compute Signals", help="Compute signals for all users (may take 1-2 minutes). After completion, user personas will appear and you can view personalized recommendations.", use_container_width=True):
+        if st.button("🔧 Compute Signals", help="Compute signals for all users (may take 1-2 minutes). After completion, user personas will appear and you can view personalized recommendations.", use_container_width=True, type="primary"):
             st.session_state.compute_signals = True
             st.rerun()
     
