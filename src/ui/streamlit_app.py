@@ -152,16 +152,16 @@ def get_system_health() -> dict:
             
     except Exception as e:
         logger.error(f"Error getting system health: {e}")
-            return {
-                'total_users': 0,
-                'users_with_signals': 0,
-                'users_with_recommendations': 0,
-                'signal_coverage': 0.0,
-                'avg_data_quality': 0.0,
-                'recent_recommendations': 0,
-                'transaction_count': 0,
-                'system_status': 'error'
-            }
+        return {
+            'total_users': 0,
+            'users_with_signals': 0,
+            'users_with_recommendations': 0,
+            'signal_coverage': 0.0,
+            'avg_data_quality': 0.0,
+            'recent_recommendations': 0,
+            'transaction_count': 0,
+            'system_status': 'error'
+        }
 
 def render_sidebar():
     """Render sidebar with navigation and controls."""
