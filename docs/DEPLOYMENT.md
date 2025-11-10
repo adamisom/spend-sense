@@ -132,12 +132,8 @@ streamlit run src/ui/streamlit_app.py
 Railway provides:
 - Free tier: $5 credit/month
 - Usage-based pricing after free tier
-- Monitor usage in Railway dashboard → Usage
 
-**Cost-saving tips:**
-- Use Railway volumes only if needed (persistent database)
-- Monitor deployment logs for errors
-- Set up Railway alerts for high usage
+**Note**: With static data and lightweight SQLite queries, cost abuse risk is minimal. Basic auth is primarily for access control, not cost protection.
 
 ## Manual Testing After Deployment
 
