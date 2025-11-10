@@ -115,6 +115,8 @@ make down       # Stop container
 - **Operator Dashboard Guide**: `docs/OPERATOR_DASHBOARD_GUIDE.md` - Complete guide for using the Streamlit dashboard
 - **Testing Manual**: `docs/Testing-Manual.md` - Manual testing procedures and quick smoke test
 - **Architecture Guide**: `docs/Architecture-Guide.md` - System architecture and design decisions
+- **Railway Deployment**: `docs/RAILWAY_QUICK_DEPLOY.md` - Quick deploy guide for Railway
+- **Railway Port Fix**: `docs/RAILWAY_PORT_FIX.md` - Port configuration issue resolution
 - **Implementation Guides**: `docs/misc/Implementation-Phase*.md` - Phase-by-phase implementation checklists
 
 ---
