@@ -307,27 +307,87 @@ def compute_savings_signals(transactions_df: pd.DataFrame, accounts_df: pd.DataF
 
 
 def compute_data_quality_score(signals_dict: dict, transactions_df: pd.DataFrame) -> float:
-    """Compute data quality score based on available data."""
+    """Compute data quality score based on available data.
+    
+    More realistic scoring that penalizes for:
+    - Low transaction volume
+    - Sparse transaction density
+    - Missing signals
+    - Data recency issues
+    - Incomplete account coverage
+    """
     score = 1.0
 
     # Penalize for missing transactions
     if transactions_df.empty:
-        score *= 0.1
-    elif len(transactions_df) < 10:
+        return 0.1
+    
+    transaction_count = len(transactions_df)
+    
+    # Transaction volume penalty (more realistic thresholds)
+    if transaction_count < 10:
+        score *= 0.3
+    elif transaction_count < 20:
         score *= 0.5
-    elif len(transactions_df) < 30:
+    elif transaction_count < 50:
         score *= 0.7
-
+    elif transaction_count < 100:
+        score *= 0.85
+    # 100+ transactions = no penalty
+    
+    # Transaction density penalty (transactions per day over window)
+    # Assume 180-day window for density calculation
+    window_days = 180
+    transactions_per_day = transaction_count / window_days
+    if transactions_per_day < 0.1:  # Less than 1 transaction per 10 days
+        score *= 0.6
+    elif transactions_per_day < 0.3:  # Less than 1 transaction per 3 days
+        score *= 0.75
+    elif transactions_per_day < 0.5:  # Less than 1 transaction per 2 days
+        score *= 0.85
+    # 0.5+ transactions/day = no penalty
+    
+    # Data recency penalty (how recent is the most recent transaction)
+    if not transactions_df.empty:
+        from datetime import datetime, timedelta
+        try:
+            most_recent = pd.to_datetime(transactions_df['date']).max()
+            days_old = (datetime.now() - most_recent.to_pydatetime()).days
+            if days_old > 90:  # No transactions in last 90 days
+                score *= 0.5
+            elif days_old > 60:  # No transactions in last 60 days
+                score *= 0.7
+            elif days_old > 30:  # No transactions in last 30 days
+                score *= 0.85
+        except Exception:
+            pass  # Skip recency check if date parsing fails
+    
+    # Signal completeness penalty (how many signals are None/missing)
+    critical_signals = [
+        'credit_utilization_max', 'monthly_subscription_spend', 
+        'monthly_savings_inflow', 'income_pay_gap', 'monthly_bank_fees'
+    ]
+    missing_signals = sum(1 for sig in critical_signals 
+                          if signals_dict.get(sig) is None or signals_dict.get(sig) == 0)
+    if missing_signals >= 3:  # Missing 3+ critical signals
+        score *= 0.6
+    elif missing_signals == 2:  # Missing 2 critical signals
+        score *= 0.75
+    elif missing_signals == 1:  # Missing 1 critical signal
+        score *= 0.9
+    
     # Penalize for computation errors
     errors = signals_dict.get('computation_errors', [])
     if errors:
-        score *= max(0.1, 1.0 - (len(errors) * 0.1))
-
-    # Penalize for missing critical signals
-    if signals_dict.get('credit_utilization_max') is None and signals_dict.get('monthly_savings_inflow', 0) == 0:
-        score *= 0.8
-
-    return max(0.0, min(1.0, score))
+        score *= max(0.3, 1.0 - (len(errors) * 0.15))  # More severe penalty per error
+    
+    # Account completeness penalty (if user has no credit cards AND no savings)
+    has_credit = signals_dict.get('credit_utilization_max') is not None
+    has_savings = signals_dict.get('monthly_savings_inflow', 0) > 0
+    if not has_credit and not has_savings:
+        score *= 0.8  # Missing both account types
+    
+    return max(0.0, min(1.0, round(score, 2)))
 
 
 def compute_all_user_signals(window_days: int = 180, db_path: str = "db/spend_sense.db", limit: int = None):
