@@ -52,19 +52,35 @@ def compute_user_signals(user_id: str, window_days: int = 180, db_path: str = "d
                     ORDER BY date DESC
                 """, conn, params=(user_id, cutoff_date))
             except sqlite3.OperationalError:
-                # Fallback if is_fraud column doesn't exist
-                transactions_df = pd.read_sql_query("""
-                    SELECT
-                        transaction_id, account_id, date, amount, merchant_name,
-                        category_primary, category_detailed, payment_channel
-                    FROM transactions
-                    WHERE user_id = ? AND date >= ?
-                    ORDER BY date DESC
-                """, conn, params=(user_id, cutoff_date))
-                # Add missing columns with defaults
-                transactions_df['is_fraud'] = 0
-                transactions_df['transaction_type'] = None
-                transactions_df['status'] = None
+                # Fallback if transaction_type/status columns don't exist
+                try:
+                    # Try with is_fraud column
+                    transactions_df = pd.read_sql_query("""
+                        SELECT
+                            transaction_id, account_id, date, amount, merchant_name,
+                            category_primary, category_detailed, payment_channel,
+                            is_fraud
+                        FROM transactions
+                        WHERE user_id = ? AND date >= ?
+                        ORDER BY date DESC
+                    """, conn, params=(user_id, cutoff_date))
+                    # Add missing columns with defaults
+                    transactions_df['transaction_type'] = None
+                    transactions_df['status'] = None
+                except sqlite3.OperationalError:
+                    # Final fallback if is_fraud also doesn't exist
+                    transactions_df = pd.read_sql_query("""
+                        SELECT
+                            transaction_id, account_id, date, amount, merchant_name,
+                            category_primary, category_detailed, payment_channel
+                        FROM transactions
+                        WHERE user_id = ? AND date >= ?
+                        ORDER BY date DESC
+                    """, conn, params=(user_id, cutoff_date))
+                    # Add missing columns with defaults
+                    transactions_df['is_fraud'] = 0
+                    transactions_df['transaction_type'] = None
+                    transactions_df['status'] = None
 
             # Get accounts
             accounts_df = pd.read_sql_query("""
