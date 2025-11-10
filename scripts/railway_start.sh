@@ -3,8 +3,8 @@
 
 set -e
 
-# Get PORT from environment (Railway sets this)
-PORT=${PORT:-8080}
+# Get PORT from environment (Railway sets this, defaults to 8000)
+PORT=${PORT:-8000}
 
 echo "🚀 Starting Streamlit on port $PORT"
 
