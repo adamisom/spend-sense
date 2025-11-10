@@ -17,6 +17,21 @@ from loguru import logger
 def render_performance_metrics():
     """Render performance metrics page."""
     st.title("⚡ Performance Metrics")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **Performance Metrics** tracks system performance and operational health.
+        
+        - **Compute Time**: P95 compute time for recommendation generation and signal computation
+        - **Error Rates**: System error rates and API endpoint performance
+        - **Response Times**: Average and P95 response times for API endpoints
+        - **Request Volume**: Total requests and traffic patterns
+        - **Fairness Metrics**: Demographic parity in recommendation rates across user groups
+        
+        Use this page to monitor system performance, identify bottlenecks, and ensure fair treatment 
+        of all demographic groups. High error rates or slow response times may indicate system issues.
+        """)
     st.markdown("Monitor system performance and response times")
     
     try:

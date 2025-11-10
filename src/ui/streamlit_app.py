@@ -188,8 +188,18 @@ def get_system_health() -> dict:
         }
 
 def render_sidebar():
-    """Render sidebar with system health and stats."""
+    """Render sidebar with navigation and system health."""
     st.sidebar.title("🎯 SpendSense Operator")
+    st.sidebar.markdown("---")
+    
+    # Navigation
+    st.sidebar.subheader("📊 Navigation")
+    page = st.sidebar.selectbox(
+        "Select View",
+        ["System Overview", "User View", "User Analytics", "Recommendation Engine", 
+         "Data Quality", "Performance Metrics", "System Logs"]
+    )
+    
     st.sidebar.markdown("---")
     
     # System health in sidebar
@@ -261,6 +271,20 @@ def render_sidebar():
 def render_system_overview():
     """Render system overview page."""
     st.title("📊 System Overview")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **System Overview** provides a high-level dashboard of system health and key metrics.
+        
+        - **Key Metrics**: Total users, signal coverage, data quality, and recent recommendations
+        - **System Status**: Check if the recommendation engine and signal detection are active
+        - **Quick Actions**: Refresh data or compute signals for all users
+        - **Health Monitoring**: See at a glance if the system is operating normally
+        
+        Use this page to get a quick snapshot of system status and take common actions.
+        """)
+    
     st.markdown("High-level system health and key metrics")
     
     # Action buttons at top
@@ -445,36 +469,10 @@ def main():
     # Note: Auto-refresh removed - Streamlit doesn't support true auto-refresh well
     # Users can click "🔄 Refresh Data" button to manually refresh
     
-    # Top navigation
-    st.title("🎯 SpendSense Operator Dashboard")
-    
-    # Navigation at top
-    pages = ["System Overview", "User View", "User Analytics", "Recommendation Engine", 
-             "Data Quality", "Performance Metrics", "System Logs"]
-    
-    # Use session state to track current page
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = "System Overview"
-    
-    # Navigation selectbox at top
-    page_selector = st.selectbox(
-        "Navigate to:",
-        pages,
-        index=pages.index(st.session_state.current_page) if st.session_state.current_page in pages else 0,
-        key="page_selector"
-    )
-    
-    if page_selector != st.session_state.current_page:
-        st.session_state.current_page = page_selector
-        st.rerun()
-    
-    st.markdown("---")
-    
-    # Render sidebar (health stats only)
-    render_sidebar()
+    # Render sidebar and get selected page
+    selected_page = render_sidebar()
     
     # Route to selected page
-    selected_page = st.session_state.current_page
     if selected_page == "User View":
         render_user_view()
     elif selected_page == "System Overview":

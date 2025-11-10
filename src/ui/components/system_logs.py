@@ -15,6 +15,21 @@ from loguru import logger
 def render_system_logs():
     """Render system logs page."""
     st.title("📋 System Logs")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **System Logs** displays recent system events, errors, and operational messages.
+        
+        - **Event History**: See what the system has been doing (database operations, signal computation, etc.)
+        - **Error Tracking**: Identify and debug errors that occur during system operations
+        - **Warning Detection**: Spot potential issues before they become critical
+        - **Audit Trail**: Review system activity for troubleshooting and compliance
+        
+        Logs are filtered by severity level (ERROR, WARNING, INFO, DEBUG) and show the most recent events.
+        Use this page to debug issues, monitor system activity, and track operational events.
+        """)
+    
     st.markdown("View recent system events and errors")
     
     # Log level filter

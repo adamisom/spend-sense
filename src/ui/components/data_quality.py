@@ -17,6 +17,21 @@ from loguru import logger
 def render_data_quality():
     """Render data quality analysis page."""
     st.title("📊 Data Quality Analysis")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **Data Quality Analysis** monitors the quality and completeness of user transaction data.
+        
+        - **Quality Scores**: See distribution of data quality scores (0.0-1.0) across all users
+        - **Low Quality Users**: Identify users with insufficient data for reliable recommendations
+        - **Error Detection**: Find users with computation errors that need attention
+        - **Quality Trends**: Track data quality over time (when historical data is available)
+        
+        Low data quality can lead to inaccurate persona classification and poor recommendations. 
+        Use this page to identify users who need more transaction data or have data issues.
+        """)
+    
     st.markdown("Monitor data quality scores and identify users with low-quality data")
     
     # Explanation of data quality calculation

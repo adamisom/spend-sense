@@ -16,6 +16,21 @@ from loguru import logger
 def render_recommendation_engine():
     """Render recommendation review and approval workflow."""
     st.title("🎯 Recommendation Engine")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **Recommendation Engine** is the operator workflow for reviewing and approving recommendations.
+        
+        - **Review Queue**: See all generated recommendations with their rationale and match reasons
+        - **Approve/Reject**: Manually approve or reject recommendations before they're delivered to users
+        - **Status Filtering**: Filter by pending, approved, or rejected status
+        - **Quality Control**: Review recommendations to ensure they're appropriate and relevant
+        
+        **Note**: In the current implementation, recommendations are shown to users regardless of approval status. 
+        This page provides oversight and quality control capabilities for operators.
+        """)
+    
     st.markdown("Review and approve recommendations before delivery")
     
     # Status filter

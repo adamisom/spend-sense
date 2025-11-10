@@ -395,6 +395,22 @@ def render_user_list(df: pd.DataFrame):
 def render_user_analytics():
     """Main function to render user analytics page."""
     st.title("👥 User Analytics")
+    
+    # Page explanation
+    with st.expander("ℹ️ What is this page?", expanded=False):
+        st.markdown("""
+        **User Analytics** provides detailed insights into user behavior, personas, and signals.
+        
+        - **User Overview**: Distribution of users by persona, consent status, and data quality
+        - **Persona Analysis**: Breakdown of financial personas and their characteristics
+        - **Fraud Analysis**: Fraud risk patterns and detection metrics
+        - **Data Quality Analysis**: Distribution of data quality scores and users with low quality data
+        - **Signal Insights**: Detailed behavioral signal analysis across users
+        - **User List**: Filterable table of all users with their key metrics
+        
+        Use this page to understand user demographics, identify patterns, and monitor data quality across the user base.
+        """)
+    
     st.markdown("Comprehensive analysis of user data, personas, and signal quality")
     
     # Load user data
