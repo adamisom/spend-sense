@@ -199,7 +199,7 @@ def render_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.subheader("⚡ Quick Actions")
     
-    if st.sidebar.button("🔧 Compute Signals", help="Compute signals for all users (may take a few minutes)"):
+    if st.sidebar.button("🔧 Compute Signals", help="Compute signals for all users (may take 1-2 minutes). After completion, user personas will appear and you can view personalized recommendations."):
         st.session_state.compute_signals = True
         st.rerun()
     
@@ -327,7 +327,18 @@ def main():
             success, message = compute_signals_from_dashboard(st.session_state.db_path)
         
         if success:
-            st.success(f"✅ Signal computation complete! {message}")
+            # Extract user count from message if available
+            import re
+            user_match = re.search(r'(\d+)\s*users?', message, re.IGNORECASE)
+            user_count = user_match.group(1) if user_match else "all"
+            
+            st.success(f"✅ Signal computation complete for {user_count} users!")
+            st.info("""
+            **Next steps:**
+            1. User personas should now appear (colored icons instead of gray)
+            2. To generate recommendations, run: `python scripts/generate_recommendations.py --all`
+            3. Refresh the page to see updated data
+            """)
             st.session_state.last_refresh = datetime.now()
             st.rerun()
         else:

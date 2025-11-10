@@ -300,6 +300,19 @@ The SpendSense Operator Dashboard provides 7 main views:
 - Updates all metrics and displays
 - Shows last refresh timestamp in sidebar
 
+**🔧 Compute Signals Button**:
+- **What it does**: Computes behavioral signals for all users (credit utilization, subscriptions, savings, income patterns)
+- **When to use**: When users have gray icons (no personas assigned) or when you need to recompute signals
+- **What to expect**:
+  - Spinner appears: "Computing signals for all users... This may take a few minutes"
+  - Takes 1-2 minutes for 50 users
+  - On success: "✅ Signal computation complete for X users!" with next steps
+  - Page auto-refreshes after completion
+- **After completion**:
+  - User personas will appear (colored icons instead of gray in User View)
+  - You can now view personalized recommendations
+  - To generate recommendations: The system will auto-generate them, or you can wait for the initialization script to complete
+
 ---
 
 ## 🔍 Common Tasks
