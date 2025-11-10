@@ -21,6 +21,10 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 
 ### Test 2: System Overview Page (2 min)
 - [ ] Navigate to "System Overview"
+- [ ] See page explanation expander ("ℹ️ What is this page?")
+- [ ] See action buttons at top:
+  - [ ] "🔄 Refresh Data" button (reloads all data from database)
+  - [ ] "🔧 Compute Signals" button (computes signals for all users)
 - [ ] See key metrics:
   - [ ] Total Users count
   - [ ] Signal Coverage percentage
@@ -29,22 +33,29 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] See system status cards (Recommendation Engine, Signal Detection)
 - [ ] Click "🔄 Refresh Data" → Metrics update
 
-### Test 3: User View Page (3 min)
+### Test 3: User View Page (5 min)
 - [ ] Navigate to "User View"
-- [ ] Enter user ID (e.g., `user_001`)
+- [ ] See info box: "👁️ Operator View: This page shows a mock of the end-user web application experience"
+- [ ] Enter user ID (e.g., `user_001`) or click a user ID from the list
 - [ ] Click "🔍 Load My Profile"
+- [ ] See consent management section:
+  - [ ] Current consent status displayed
+  - [ ] "Grant Consent" or "Revoke Consent" button works
 - [ ] See persona card with:
   - [ ] Persona name and icon
   - [ ] Persona description
   - [ ] Matched criteria
+- [ ] See "🔄 Get New Recommendations" button
 - [ ] See recommendations section:
   - [ ] 3-5 recommendations displayed
   - [ ] Each recommendation has:
     - [ ] Title
     - [ ] Description
-    - [ ] "Why this matters" rationale
+    - [ ] "Why this matters" rationale (personalized)
+    - [ ] Disclaimer: "This is educational content, not financial advice. Consult a licensed advisor for personalized guidance."
     - [ ] Reading time
     - [ ] Content type
+- [ ] Test consent blocking: Revoke consent for a user → Recommendations should be blocked with warning message
 
 ### Test 4: User Analytics Page (2 min)
 - [ ] Navigate to "User Analytics"
@@ -55,14 +66,28 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] See data quality histogram
 - [ ] See user list table (filterable)
 
-### Test 5: Recommendation Engine Page (2 min)
+### Test 5: Recommendation Engine Page (3 min)
 - [ ] Navigate to "Recommendation Engine"
+- [ ] Wait for page to load (may take a few seconds)
+- [ ] See page explanation expander ("ℹ️ What is this page?")
+- [ ] See filter controls:
+  - [ ] Filter by Status dropdown (All, Pending, Approved, Rejected)
+  - [ ] Limit number input
+  - [ ] "🔄 Refresh" button (styled, full-width)
 - [ ] See approval queue or recent recommendations
 - [ ] Each recommendation shows:
   - [ ] User ID
   - [ ] Content title
   - [ ] Rationale
+  - [ ] Status badge (Pending, Approved, Rejected)
   - [ ] Created timestamp
+  - [ ] "🔍 View Decision Trace (Audit Trail)" expander
+- [ ] Click decision trace expander:
+  - [ ] Full JSON trace displays
+  - [ ] Step-by-step summary shows (persona classification, signal mapping, filtering, scoring)
+- [ ] Test "🔄 Refresh" button → Page reloads with latest recommendations
+- [ ] Test status filtering → Only shows recommendations matching filter
+- [ ] Test approve/reject buttons (if pending recommendations exist)
 
 ### Test 6: Data Quality Page (2 min)
 - [ ] Navigate to "Data Quality"
@@ -92,15 +117,18 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] All pages load without database errors
 - [ ] No "database locked" errors
 - [ ] Data persists across page refreshes
-- [ ] Database path setting works (if changed in sidebar)
 
 ### Test 10: Signal Computation (5 min)
-- [ ] Click "🔧 Compute Signals" in sidebar
-- [ ] See spinner/loading indicator
+- [ ] Navigate to "System Overview" page
+- [ ] Click "🔧 Compute Signals" button (on System Overview page, not sidebar)
+- [ ] See info message: "🔄 Computing signals for all users... This may take 1-2 minutes. Please wait."
+- [ ] See spinner: "⏳ Processing... This may take a few minutes."
 - [ ] Wait for completion (may take 1-2 minutes)
-- [ ] See success message
-- [ ] Refresh page → Signal coverage increases
+- [ ] See success message: "✅ Signal computation complete for X users!"
+- [ ] Page auto-refreshes after 3 seconds
+- [ ] Signal coverage increases
 - [ ] User Analytics page shows updated signals
+- [ ] User personas appear (colored icons in User View instead of gray)
 
 ### Test 11: Navigation (2 min)
 - [ ] Navigate between all pages:
@@ -114,12 +142,11 @@ Quick testing checklist to verify nothing regressed and all basic functionality 
 - [ ] No page crashes or errors
 - [ ] Sidebar navigation works correctly
 
-### Test 12: Auto-Refresh (2 min)
-- [ ] Enable "Auto-refresh (30s)" checkbox
-- [ ] Wait 30+ seconds
-- [ ] Verify data refreshes (check timestamp in sidebar)
-- [ ] Disable auto-refresh
-- [ ] Verify it stops refreshing
+### Test 12: Refresh Data Button (2 min)
+- [ ] Navigate to "System Overview" page
+- [ ] Click "🔄 Refresh Data" button
+- [ ] Verify metrics update (check last refresh timestamp in sidebar)
+- [ ] All pages should show latest data after refresh
 
 ---
 
